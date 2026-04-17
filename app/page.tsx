@@ -37,14 +37,14 @@ export default function ReportDashboard() {
     const start = new Date()
     if (filterPeriod === 'today') start.setHours(0, 0, 0, 0)
     else if (filterPeriod === 'week') start.setDate(now.getDate() - 7)
-    else if (filterPeriod === 'month') start.setDate(1)
-    else if (filterPeriod === 'year') { start.setMonth(0); start.setDate(1) }
+    else if (filterPeriod === 'month') { start.setDate(1); start.setHours(0,0,0,0) }
+    else if (filterPeriod === 'year') { start.setMonth(0); start.setDate(1); start.setHours(0,0,0,0) }
     return start
   }
 
   const filteredOrders = allOrders.filter(o => {
     const locMatch = filterLocations.length === 0 || filterLocations.includes(o.location)
-    const dateMatch = new Date(o.created_at) >= getDateRange()
+    const dateMatch = filterPeriod === 'all' || new Date(o.created_at) >= getDateRange()
     return locMatch && dateMatch
   })
 
@@ -52,7 +52,6 @@ export default function ReportDashboard() {
   const avgOrder = filteredOrders.length > 0 ? revenue / filteredOrders.length : 0
   const cancelledOrders = filteredOrders.filter(o => o.status === 'cancelled').length
 
-  // Top items
   const itemCounts: Record<string, { count: number, revenue: number }> = {}
   filteredOrders.forEach(o => {
     (o.items || []).forEach((item: any) => {
@@ -61,24 +60,19 @@ export default function ReportDashboard() {
       itemCounts[item.name].revenue += parseFloat(item.lineTotal || item.price || 0)
     })
   })
-  const topItems = Object.entries(itemCounts)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 5)
+  const topItems = Object.entries(itemCounts).sort((a, b) => b[1].count - a[1].count).slice(0, 5)
 
-  // Revenue by location
   const revenueByLocation: Record<string, number> = {}
   filteredOrders.forEach(o => {
     const loc = o.location || 'Unknown'
     revenueByLocation[loc] = (revenueByLocation[loc] || 0) + (parseFloat(o.total) || 0)
   })
 
-  // Orders by hour
   const ordersByHour: Record<number, number> = {}
   filteredOrders.forEach(o => {
     const hour = new Date(o.created_at).getHours()
     ordersByHour[hour] = (ordersByHour[hour] || 0) + 1
   })
-  const peakHour = Object.entries(ordersByHour).sort((a, b) => b[1] - a[1])[0]
 
   const toggleLocation = (loc: string) => {
     setFilterLocations(prev => prev.includes(loc) ? prev.filter(l => l !== loc) : [...prev, loc])
@@ -98,19 +92,19 @@ export default function ReportDashboard() {
   ]
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#0f0f0f' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#f5f5f5' }}>
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #2a2a2a', backgroundColor: '#1a1a1a' }}>
+      <header className="px-6 py-4 flex items-center justify-between bg-white" style={{ borderBottom: '1px solid #e5e5e5' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-black text-sm" style={{ backgroundColor: '#F5C800' }}>A</div>
           <div>
-            <h1 className="font-bold text-white">Angie's Reports</h1>
+            <h1 className="font-bold" style={{ color: '#1A1A1A' }}>Angie's Reports</h1>
             <p className="text-xs" style={{ color: '#888' }}>Business Intelligence</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs" style={{ color: '#888' }}>{user?.email}</span>
-          <button onClick={handleLogout} className="p-2 rounded-lg transition hover:bg-gray-800">
+          <button onClick={handleLogout} className="p-2 rounded-lg transition hover:bg-gray-100">
             <LogOut size={16} style={{ color: '#888' }} />
           </button>
         </div>
@@ -120,29 +114,29 @@ export default function ReportDashboard() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-8">
-          {/* Period */}
           <div className="flex gap-2 flex-wrap">
             {PERIODS.map(p => (
               <button key={p.key} onClick={() => setFilterPeriod(p.key)}
                 className="px-3 py-1.5 rounded-full text-xs font-medium transition"
                 style={{
-                  backgroundColor: filterPeriod === p.key ? '#F5C800' : '#2a2a2a',
-                  color: filterPeriod === p.key ? '#1A1A1A' : '#aaa',
+                  backgroundColor: filterPeriod === p.key ? '#F5C800' : '#fff',
+                  color: filterPeriod === p.key ? '#1A1A1A' : '#666',
+                  border: '1px solid #e5e5e5'
                 }}>
                 {p.label}
               </button>
             ))}
           </div>
 
-          {/* Locations */}
           {locations.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {locations.map(loc => (
                 <button key={loc} onClick={() => toggleLocation(loc)}
                   className="px-3 py-1.5 rounded-full text-xs font-medium transition flex items-center gap-1"
                   style={{
-                    backgroundColor: filterLocations.includes(loc) ? '#F5C800' : '#2a2a2a',
-                    color: filterLocations.includes(loc) ? '#1A1A1A' : '#aaa',
+                    backgroundColor: filterLocations.includes(loc) ? '#F5C800' : '#fff',
+                    color: filterLocations.includes(loc) ? '#1A1A1A' : '#666',
+                    border: '1px solid #e5e5e5'
                   }}>
                   <MapPin size={10} />
                   {filterLocations.includes(loc) ? '✓ ' : ''}{loc}
@@ -160,24 +154,24 @@ export default function ReportDashboard() {
             { label: 'Avg Order', value: `$${avgOrder.toFixed(2)}`, icon: TrendingUp, color: '#22c55e' },
             { label: 'Cancelled', value: cancelledOrders, icon: BarChart3, color: '#ef4444' },
           ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="rounded-2xl p-5" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+            <div key={label} className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs" style={{ color: '#888' }}>{label}</span>
                 <Icon size={16} style={{ color }} />
               </div>
-              <p className="text-2xl font-bold text-white">{loading ? '—' : value}</p>
+              <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>{loading ? '—' : value}</p>
             </div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Revenue by Location */}
-          <div className="rounded-2xl p-5" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-            <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
+            <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
               <MapPin size={16} style={{ color: '#F5C800' }} /> Revenue by Location
             </h3>
             {Object.entries(revenueByLocation).length === 0 ? (
-              <p className="text-sm" style={{ color: '#555' }}>No data</p>
+              <p className="text-sm" style={{ color: '#bbb' }}>No data</p>
             ) : (
               <div className="space-y-3">
                 {Object.entries(revenueByLocation).sort((a, b) => b[1] - a[1]).map(([loc, rev]) => {
@@ -186,10 +180,10 @@ export default function ReportDashboard() {
                   return (
                     <div key={loc}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span style={{ color: '#ccc' }}>{loc}</span>
-                        <span className="font-semibold text-white">${rev.toFixed(2)}</span>
+                        <span style={{ color: '#555' }}>{loc}</span>
+                        <span className="font-semibold" style={{ color: '#1A1A1A' }}>${rev.toFixed(2)}</span>
                       </div>
-                      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#2a2a2a' }}>
+                      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#f0f0f0' }}>
                         <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: '#F5C800' }} />
                       </div>
                     </div>
@@ -200,25 +194,25 @@ export default function ReportDashboard() {
           </div>
 
           {/* Top Items */}
-          <div className="rounded-2xl p-5" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-            <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
+            <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
               <TrendingUp size={16} style={{ color: '#22c55e' }} /> Top Items
             </h3>
             {topItems.length === 0 ? (
-              <p className="text-sm" style={{ color: '#555' }}>No data</p>
+              <p className="text-sm" style={{ color: '#bbb' }}>No data</p>
             ) : (
               <div className="space-y-3">
                 {topItems.map(([name, data], i) => (
                   <div key={name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                        style={{ backgroundColor: i === 0 ? '#F5C800' : '#2a2a2a', color: i === 0 ? '#1A1A1A' : '#888' }}>
+                        style={{ backgroundColor: i === 0 ? '#F5C800' : '#f0f0f0', color: i === 0 ? '#1A1A1A' : '#888' }}>
                         {i + 1}
                       </span>
-                      <span className="text-sm" style={{ color: '#ccc' }}>{name}</span>
+                      <span className="text-sm" style={{ color: '#555' }}>{name}</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-white">{data.count}x</div>
+                      <div className="text-sm font-semibold" style={{ color: '#1A1A1A' }}>{data.count}x</div>
                       <div className="text-xs" style={{ color: '#888' }}>${data.revenue.toFixed(2)}</div>
                     </div>
                   </div>
@@ -228,12 +222,12 @@ export default function ReportDashboard() {
           </div>
 
           {/* Peak Hours */}
-          <div className="rounded-2xl p-5" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-            <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
+            <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
               <Clock size={16} style={{ color: '#4a9eff' }} /> Orders by Hour
             </h3>
             {Object.keys(ordersByHour).length === 0 ? (
-              <p className="text-sm" style={{ color: '#555' }}>No data</p>
+              <p className="text-sm" style={{ color: '#bbb' }}>No data</p>
             ) : (
               <div className="space-y-2">
                 {Array.from({ length: 24 }, (_, h) => ({ hour: h, count: ordersByHour[h] || 0 }))
@@ -247,10 +241,10 @@ export default function ReportDashboard() {
                     return (
                       <div key={hour}>
                         <div className="flex justify-between text-sm mb-1">
-                          <span style={{ color: '#ccc' }}>{label}</span>
-                          <span className="font-semibold text-white">{count} orders</span>
+                          <span style={{ color: '#555' }}>{label}</span>
+                          <span className="font-semibold" style={{ color: '#1A1A1A' }}>{count} orders</span>
                         </div>
-                        <div className="h-1.5 rounded-full" style={{ backgroundColor: '#2a2a2a' }}>
+                        <div className="h-1.5 rounded-full" style={{ backgroundColor: '#f0f0f0' }}>
                           <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, backgroundColor: '#4a9eff' }} />
                         </div>
                       </div>
@@ -261,11 +255,11 @@ export default function ReportDashboard() {
           </div>
         </div>
 
-        {/* CSV Import teaser */}
-        <div className="mt-6 rounded-2xl p-5 flex items-center justify-between"
-          style={{ backgroundColor: '#1a1a1a', border: '1px dashed #2a2a2a' }}>
+        {/* CSV Import */}
+        <div className="mt-6 rounded-2xl p-5 flex items-center justify-between bg-white"
+          style={{ border: '1px dashed #e5e5e5' }}>
           <div>
-            <h3 className="font-semibold text-white">Import External Data</h3>
+            <h3 className="font-semibold" style={{ color: '#1A1A1A' }}>Import External Data</h3>
             <p className="text-sm mt-1" style={{ color: '#888' }}>Upload CSV from Uber Eats, DoorDash, Menulog or Lightspeed</p>
           </div>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
