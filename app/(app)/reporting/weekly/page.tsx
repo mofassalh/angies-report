@@ -45,7 +45,7 @@ function Dropdown({ label, options, selected, multi, onChange }: {
         <ChevronDown size={12}/>
       </button>
       {open && (
-        <div ref={menuRef} style={{ position:'fixed', top:pos.top, left:pos.left, zIndex:99999, minWidth:220, background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-secondary)', borderRadius:10, boxShadow:'0 8px 24px rgba(0,0,0,0.15)', maxHeight:280, overflowY:'auto' }}>
+        <div ref={menuRef} style={{ position:'fixed', top:pos.top, left:pos.left, zIndex:999999, minWidth:220, background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-secondary)', borderRadius:10, boxShadow:'0 8px 24px rgba(0,0,0,0.15)', maxHeight:280, overflowY:'auto' }}>
           {multi && <div onClick={()=>onChange([])} style={{ padding:'9px 14px', fontSize:12, cursor:'pointer', background:selected.length===0?'#FFF3B0':'transparent', color:selected.length===0?'#7A5F00':'var(--color-text-primary)', fontWeight:selected.length===0?500:400 }}>All {label}</div>}
           {options.map(opt => {
             const isSel = selected.includes(opt.key)
