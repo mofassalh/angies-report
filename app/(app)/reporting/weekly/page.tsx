@@ -17,16 +17,16 @@ function MultiSelect({ label, options, selected, onChange }: {
   const allSelected = selected.length === 0
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', border: '0.5px solid var(--color-border-secondary)', borderRadius: 20, background: allSelected ? 'var(--color-background-primary)' : '#FFF9E0', color: allSelected ? 'var(--color-text-secondary)' : '#b8860b', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', border: '0.5px solid var(--color-border-secondary)', borderRadius: 20, background: allSelected ? 'var(--color-background-primary)' : '#FFF9E0', color: allSelected ? 'var(--color-text-secondary)' : '#b8860b', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: allSelected ? 400 : 500 }}>
         <span>{allSelected ? `All ${label}` : `${selected.length} selected`}</span>
-        {!allSelected && <span onClick={e => { e.stopPropagation(); onChange([]) }}>✕</span>}
+        {!allSelected && <span onClick={e => { e.stopPropagation(); onChange([]) }} style={{ marginLeft: 2 }}>✕</span>}
         <ChevronDown size={12} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4, minWidth: 200, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-          <div onClick={() => onChange([])} style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', background: allSelected ? '#FFF9E0' : 'transparent', color: allSelected ? '#b8860b' : 'var(--color-text-primary)', fontWeight: allSelected ? 500 : 400 }}>All {label}</div>
+        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 200, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+          <div onClick={() => onChange([])} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', background: allSelected ? '#FFF9E0' : 'transparent', color: allSelected ? '#b8860b' : 'var(--color-text-primary)', fontWeight: allSelected ? 500 : 400 }}>All {label}</div>
           {options.map(opt => (
-            <div key={opt} onClick={() => toggle(opt)} style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: selected.includes(opt) ? '#FFF9E0' : 'transparent', color: selected.includes(opt) ? '#b8860b' : 'var(--color-text-primary)' }}>
+            <div key={opt} onClick={() => toggle(opt)} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: selected.includes(opt) ? '#FFF9E0' : 'transparent', color: selected.includes(opt) ? '#b8860b' : 'var(--color-text-primary)' }}>
               <div style={{ width: 14, height: 14, border: `1.5px solid ${selected.includes(opt) ? '#F5C800' : 'var(--color-border-secondary)'}`, borderRadius: 3, background: selected.includes(opt) ? '#F5C800' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {selected.includes(opt) && <span style={{ fontSize: 9, color: '#1A1A1A', fontWeight: 700 }}>✓</span>}
               </div>
@@ -39,8 +39,8 @@ function MultiSelect({ label, options, selected, onChange }: {
   )
 }
 
-function SingleSelect({ label, options, value, onChange }: {
-  label: string, options: {key: string, label: string}[], value: string, onChange: (v: string) => void
+function SingleSelect({ options, value, onChange }: {
+  options: {key: string, label: string}[], value: string, onChange: (v: string) => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -52,14 +52,14 @@ function SingleSelect({ label, options, value, onChange }: {
   const selected = options.find(o => o.key === value)
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', border: '0.5px solid var(--color-border-secondary)', borderRadius: 20, background: '#FFF9E0', color: '#b8860b', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-        <span>{selected?.label || label}</span>
+      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', border: '0.5px solid #F5C800', borderRadius: 20, background: '#FFF9E0', color: '#b8860b', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 500 }}>
+        <span>{selected?.label || '—'}</span>
         <ChevronDown size={12} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4, minWidth: 200, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 220, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', maxHeight: 260, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
           {options.map(opt => (
-            <div key={opt.key} onClick={() => { onChange(opt.key); setOpen(false) }} style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', background: value === opt.key ? '#FFF9E0' : 'transparent', color: value === opt.key ? '#b8860b' : 'var(--color-text-primary)', fontWeight: value === opt.key ? 500 : 400 }}>
+            <div key={opt.key} onClick={() => { onChange(opt.key); setOpen(false) }} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', background: value === opt.key ? '#FFF9E0' : 'transparent', color: value === opt.key ? '#b8860b' : 'var(--color-text-primary)', fontWeight: value === opt.key ? 500 : 400 }}>
               {opt.label}
             </div>
           ))}
@@ -89,7 +89,6 @@ export default function ReportingPage() {
       const { data: weekly } = await supabase.from('report_weekly_data').select('*, report_restaurants(name, brand, report_locations(name))').order('week_start')
       const d = weekly || []
       setAllData(d)
-      // Set default from/to
       const weeks = [...new Set(d.map((x: any) => x.week_start))].sort() as string[]
       if (weeks.length > 0) { setFromWeek(weeks[0]); setToWeek(weeks[weeks.length - 1]) }
       setLoading(false)
@@ -112,7 +111,7 @@ export default function ReportingPage() {
 
   const weekOptions = allWeeks.map((w, i) => ({
     key: w,
-    label: `Week ${i+1} (${new Date(w).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })})`
+    label: `Week ${i+1} — ${new Date(w).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`
   }))
 
   const MONTH_NAMES: Record<string, string> = { '01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December' }
@@ -178,7 +177,6 @@ export default function ReportingPage() {
     { key: 'ddTx', label: 'DoorDash', format: fmtN, indent: true },
   ]
 
-  // Build columns based on view mode
   type Col = { key: string, label: string, sub: string, isTotal: boolean, rows: any[] }
   let columns: Col[] = []
 
@@ -196,7 +194,7 @@ export default function ReportingPage() {
         const idx = allWeeks.indexOf(w) + 1
         columns.push({ key: w, label: `Week ${idx}`, sub: new Date(w).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }), isTotal: false, rows: baseFiltered.filter(d => d.week_start === w) })
       })
-      columns.push({ key: `total-${month}`, label: MONTH_NAMES[mo] || mo, sub: year, isTotal: true, rows: baseFiltered.filter(d => d.week_start.startsWith(month) && weeks.includes(d.week_start)) })
+      columns.push({ key: `total-${month}`, label: MONTH_NAMES[mo] || mo, sub: year, isTotal: true, rows: baseFiltered.filter(d => weeks.includes(d.week_start)) })
     })
   } else if (viewMode === 'monthly') {
     const months = selMonths.length > 0 ? allMonths.filter(m => selMonths.includes(m)) : allMonths
@@ -221,40 +219,49 @@ export default function ReportingPage() {
     })
   }
 
-  const stickyLabel: React.CSSProperties = { minWidth: 200, width: 200, position: 'sticky', left: 0, zIndex: 3, background: 'var(--color-background-primary)', borderRight: '1px solid var(--color-border-tertiary)', padding: '5px 12px', fontSize: 12, color: 'var(--color-text-primary)', borderBottom: '0.5px solid var(--color-border-tertiary)', whiteSpace: 'nowrap' }
+  const LABEL_W = 200
+
+  const labelCellBase: React.CSSProperties = {
+    width: LABEL_W, minWidth: LABEL_W, maxWidth: LABEL_W,
+    position: 'sticky', left: 0, zIndex: 3,
+    borderRight: '1px solid var(--color-border-secondary)',
+    padding: '5px 12px',
+    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+    fontSize: 12,
+  }
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-secondary)' }}>Loading...</div>
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 16, padding: '10px 14px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12 }}>
-        {/* View Mode */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 16px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12 }}>
+
+        {/* View toggle */}
         <div style={{ display: 'flex', background: 'var(--color-background-secondary)', borderRadius: 20, padding: 2, gap: 2 }}>
           {(['weekly','monthly','yearly'] as const).map(mode => (
-            <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none', background: viewMode === mode ? '#F5C800' : 'transparent', color: viewMode === mode ? '#1A1A1A' : 'var(--color-text-secondary)', textTransform: 'capitalize' }}>
+            <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '4px 16px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none', background: viewMode === mode ? '#F5C800' : 'transparent', color: viewMode === mode ? '#1A1A1A' : 'var(--color-text-secondary)' }}>
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </button>
           ))}
         </div>
 
-        <div style={{ width: 1, height: 20, background: 'var(--color-border-tertiary)' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--color-border-tertiary)', flexShrink: 0 }} />
 
-        {/* Location & Restaurant */}
         <MultiSelect label="Locations" options={locationNames} selected={selLocations} onChange={v => { setSelLocations(v); setSelRestaurants([]) }} />
         <MultiSelect label="Restaurants" options={restaurantNames} selected={selRestaurants} onChange={setSelRestaurants} />
 
-        <div style={{ width: 1, height: 20, background: 'var(--color-border-tertiary)' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--color-border-tertiary)', flexShrink: 0 }} />
 
-        {/* Period filters */}
         {viewMode === 'weekly' && (
-          <>
-            <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>From</span>
-            <SingleSelect label="From" options={weekOptions} value={fromWeek} onChange={setFromWeek} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>From</span>
+            <SingleSelect options={weekOptions} value={fromWeek} onChange={setFromWeek} />
             <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>→</span>
-            <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>To</span>
-            <SingleSelect label="To" options={weekOptions} value={toWeek} onChange={setToWeek} />
-          </>
+            <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>To</span>
+            <SingleSelect options={weekOptions} value={toWeek} onChange={setToWeek} />
+          </div>
         )}
         {viewMode === 'monthly' && (
           <MultiSelect label="Months" options={monthOptions.map(m => m.label)} selected={selMonths.map(m => monthOptions.find(o => o.key === m)?.label || m)} onChange={labels => setSelMonths(labels.map(l => monthOptions.find(o => o.label === l)?.key || l))} />
@@ -264,19 +271,23 @@ export default function ReportingPage() {
         )}
 
         {(selLocations.length > 0 || selRestaurants.length > 0) && (
-          <button onClick={() => { setSelLocations([]); setSelRestaurants([]) }} style={{ padding: '5px 12px', border: '0.5px solid #ffcccc', borderRadius: 20, background: '#fff5f5', color: '#cc0000', fontSize: 12, cursor: 'pointer' }}>Clear all</button>
+          <button onClick={() => { setSelLocations([]); setSelRestaurants([]) }} style={{ padding: '5px 12px', border: '0.5px solid #ffcccc', borderRadius: 20, background: '#fff5f5', color: '#cc0000', fontSize: 12, cursor: 'pointer' }}>Clear</button>
         )}
       </div>
 
       {/* Table */}
       <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', fontSize: 12, minWidth: '100%' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-              <tr>
-                <th style={{ ...stickyLabel, background: 'var(--color-background-primary)', zIndex: 11, borderBottom: '1px solid var(--color-border-secondary)', fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', padding: '6px 12px' }}></th>
+        <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', minWidth: `${LABEL_W + columns.length * 100}px` }}>
+            <colgroup>
+              <col style={{ width: LABEL_W }} />
+              {columns.map((col, i) => <col key={i} style={{ width: col.isTotal ? 110 : 95 }} />)}
+            </colgroup>
+            <thead>
+              <tr style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                <th style={{ ...labelCellBase, background: 'var(--color-background-primary)', zIndex: 11, borderBottom: '1px solid var(--color-border-secondary)', fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textAlign: 'left', padding: '6px 12px' }}></th>
                 {columns.map((col, i) => (
-                  <th key={i} style={{ textAlign: 'right', padding: '6px 12px', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', borderBottom: '1px solid var(--color-border-secondary)', minWidth: col.isTotal ? 110 : 90, background: col.isTotal ? '#FFF9E0' : 'var(--color-background-primary)', color: col.isTotal ? '#b8860b' : 'var(--color-text-secondary)', borderLeft: col.isTotal ? '1px solid #F5C800' : 'none', borderRight: col.isTotal ? '1px solid #F5C800' : 'none' }}>
+                  <th key={i} style={{ textAlign: 'right', padding: '6px 10px', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: '1px solid var(--color-border-secondary)', background: col.isTotal ? '#FFF9E0' : 'var(--color-background-primary)', color: col.isTotal ? '#b8860b' : 'var(--color-text-secondary)', borderLeft: col.isTotal ? '1px solid #F5C800' : 'none', borderRight: col.isTotal ? '1px solid #F5C800' : 'none' }}>
                     <div>{col.label}</div>
                     <div style={{ fontWeight: 400, fontSize: 10, color: col.isTotal ? '#b8860b' : 'var(--color-text-secondary)' }}>{col.sub}</div>
                   </th>
@@ -288,13 +299,15 @@ export default function ReportingPage() {
                 if ('section' in row) {
                   return (
                     <tr key={ri}>
-                      <td colSpan={columns.length + 1} style={{ ...stickyLabel, background: 'var(--color-background-secondary)', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-secondary)', zIndex: 4 }}>{row.section}</td>
+                      <td colSpan={columns.length + 1} style={{ ...labelCellBase, background: 'var(--color-background-secondary)', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-secondary)', zIndex: 4, maxWidth: 'unset', width: 'auto' }}>
+                        {row.section}
+                      </td>
                     </tr>
                   )
                 }
                 return (
                   <tr key={ri}>
-                    <td style={{ ...stickyLabel, paddingLeft: row.indent ? 24 : 12, fontWeight: row.bold ? 600 : 400, background: row.bold ? 'var(--color-background-secondary)' : 'var(--color-background-primary)', color: row.indent ? 'var(--color-text-secondary)' : 'var(--color-text-primary)' }}>
+                    <td style={{ ...labelCellBase, paddingLeft: row.indent ? 24 : 12, fontWeight: row.bold ? 600 : 400, background: row.bold ? 'var(--color-background-secondary)' : 'var(--color-background-primary)', color: row.indent ? 'var(--color-text-secondary)' : 'var(--color-text-primary)', textAlign: 'left' }}>
                       {row.label}
                     </td>
                     {columns.map((col, ci) => {
@@ -305,7 +318,7 @@ export default function ReportingPage() {
                       if (row.profit) color = val >= 0 ? '#16a34a' : '#dc2626'
                       if (row.profitPct) color = getProfitColor(val)
                       return (
-                        <td key={ci} style={{ textAlign: 'right', padding: '5px 12px', whiteSpace: 'nowrap', borderBottom: '0.5px solid var(--color-border-tertiary)', background: row.bold ? (col.isTotal ? '#FFF9E0' : 'var(--color-background-secondary)') : (col.isTotal ? '#FFFDE8' : 'transparent'), color: color || (col.isTotal ? '#b8860b' : 'var(--color-text-primary)'), fontWeight: row.bold || col.isTotal ? 600 : 400, borderLeft: col.isTotal ? '1px solid #F5C800' : 'none', borderRight: col.isTotal ? '1px solid #F5C800' : 'none' }}>
+                        <td key={ci} style={{ textAlign: 'right', padding: '5px 10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: '0.5px solid var(--color-border-tertiary)', background: row.bold ? (col.isTotal ? '#FFF9E0' : 'var(--color-background-secondary)') : (col.isTotal ? '#FFFDE8' : 'transparent'), color: color || (col.isTotal ? '#b8860b' : 'var(--color-text-primary)'), fontWeight: row.bold || col.isTotal ? 600 : 400, borderLeft: col.isTotal ? '1px solid #F5C800' : 'none', borderRight: col.isTotal ? '1px solid #F5C800' : 'none' }}>
                           {formatted}
                         </td>
                       )
