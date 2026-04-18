@@ -11,7 +11,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const showFilterBar = !pathname.startsWith('/reporting')
-  const isReporting = pathname.startsWith('/reporting')
 
   useEffect(() => {
     const supabase = createClient()
@@ -36,12 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, height:'100vh', overflow:'hidden' }}>
           {showFilterBar && <FilterBar />}
-          <main style={{
-            flex:1,
-            overflowY: 'auto',
-            overflowX: isReporting ? 'auto' : 'hidden',
-            padding:24,
-          }}>
+          <main style={{ flex:1, overflow:'auto', padding:24 }}>
             {children}
           </main>
         </div>

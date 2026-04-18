@@ -11,7 +11,7 @@ function Dropdown({ label, options, selected, multi, onChange }: {
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -24,7 +24,7 @@ function Dropdown({ label, options, selected, multi, onChange }: {
   const handleOpen = () => {
     if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect()
-      setPos({ top: r.bottom + 4, left: r.left })
+      setMenuStyle({ position:'fixed', top:r.bottom+4, left:r.left, zIndex:999999, minWidth:220, background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-secondary)', borderRadius:10, boxShadow:'0 8px 24px rgba(0,0,0,0.15)', maxHeight:280, overflowY:'auto' })
     }
     setOpen(o => !o)
   }
@@ -45,7 +45,7 @@ function Dropdown({ label, options, selected, multi, onChange }: {
         <ChevronDown size={12}/>
       </button>
       {open && (
-        <div ref={menuRef} style={{ position:'fixed', top:pos.top, left:pos.left, zIndex:999999, minWidth:220, background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-secondary)', borderRadius:10, boxShadow:'0 8px 24px rgba(0,0,0,0.15)', maxHeight:280, overflowY:'auto' }}>
+        <div ref={menuRef} style={menuStyle}>
           {multi && <div onClick={()=>onChange([])} style={{ padding:'9px 14px', fontSize:12, cursor:'pointer', background:selected.length===0?'#FFF3B0':'transparent', color:selected.length===0?'#7A5F00':'var(--color-text-primary)', fontWeight:selected.length===0?500:400 }}>All {label}</div>}
           {options.map(opt => {
             const isSel = selected.includes(opt.key)
@@ -74,30 +74,6 @@ export default function ReportingPage() {
   const [selMonths, setSelMonths] = useState<string[]>([])
   const [selYears, setSelYears] = useState<string[]>([])
   const supabase = createClient()
-
-  // Refs for JS-based sticky
-  const containerRef = useRef<HTMLDivElement>(null)
-  const theadRef = useRef<HTMLTableRowElement>(null)
-  const labelCellsRef = useRef<HTMLTableCellElement[]>([])
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    const handleScroll = () => {
-      const scrollTop = container.scrollTop
-      const scrollLeft = container.scrollLeft
-      // Sticky header
-      if (theadRef.current) {
-        theadRef.current.style.transform = `translateY(${scrollTop}px)`
-      }
-      // Sticky left column
-      labelCellsRef.current.forEach(cell => {
-        if (cell) cell.style.transform = `translateX(${scrollLeft}px)`
-      })
-    }
-    container.addEventListener('scroll', handleScroll, { passive: true })
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [loading])
 
   useEffect(() => {
     const fetch = async () => {
@@ -244,28 +220,34 @@ export default function ReportingPage() {
     { label:'Commission %', get:d=>fp(d.ddComm), indent:true, muted:true, color:_d=>'#dc2626' },
   ]
 
-  const W_LABEL = 205
-  const W_COL = 95
-  const W_TOTAL = 110
+  const W = 205
   const BG = '#ffffff'
   const BG2 = '#f7f7f7'
-  const SEC_BG = '#f0f0ee'
-  const M_BG = '#FFF3B0'
-  const M_COLOR = '#7A5F00'
-  const M_BORDER = '#D4A900'
+  const SEC = '#f0f0ee'
+  const MB = '#FFF3B0'
+  const MC = '#7A5F00'
+  const MBR = '#D4A900'
 
-  let labelIdx = 0
-  const setLabelRef = (el: HTMLTableCellElement | null) => {
-    if (el) labelCellsRef.current[labelIdx++] = el
-  }
+  const lc = (extra?: React.CSSProperties): React.CSSProperties => ({
+    position:'sticky', left:0, zIndex:2,
+    width:W, minWidth:W,
+    background:BG,
+    borderRight:'2px solid #e0e0e0',
+    textAlign:'left',
+    padding:'5px 12px',
+    whiteSpace:'nowrap',
+    fontSize:12,
+    color:'var(--color-text-primary)',
+    borderBottom:'0.5px solid #ebebeb',
+    ...extra
+  })
 
   if (loading) return <div style={{padding:40,textAlign:'center',color:'var(--color-text-secondary)'}}>Loading...</div>
 
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:10,height:'100%'}}>
-
-      {/* Toolbar */}
-      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',padding:'10px 14px',background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderRadius:12,flexShrink:0}}>
+    <div style={{display:'flex',flexDirection:'column',gap:10,height:'calc(100vh - 48px)'}}>
+      {/* Toolbar — outside scroll */}
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',padding:'10px 14px',background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderRadius:12,flexShrink:0,position:'relative',zIndex:100}}>
         <Dropdown label="Weekly" options={[{key:'weekly',label:'Weekly'},{key:'monthly',label:'Monthly'},{key:'yearly',label:'Yearly'}]} selected={[viewMode]} onChange={v=>{setViewMode(v[0]);setSelMonths([]);setSelYears([])}} />
         <div style={{width:1,height:20,background:'var(--color-border-tertiary)'}}/>
         <Dropdown label="Locations" options={locationNames.map(l=>({key:l,label:l}))} selected={selLocations} multi onChange={v=>{setSelLocations(v);setSelRestaurants([])}} />
@@ -282,41 +264,30 @@ export default function ReportingPage() {
         {(selLocations.length>0||selRestaurants.length>0) && <button onClick={()=>{setSelLocations([]);setSelRestaurants([])}} style={{padding:'5px 12px',border:'0.5px solid #ffcccc',borderRadius:20,background:'#fff5f5',color:'#cc0000',fontSize:12,cursor:'pointer'}}>Clear</button>}
       </div>
 
-      {/* Scrollable table container */}
-      <div
-        ref={containerRef}
-        style={{
-          flex:1,
-          overflow:'auto',
-          borderRadius:12,
-          border:'0.5px solid #e0e0e0',
-          background:BG,
-        }}
-      >
-        <table style={{borderCollapse:'collapse',fontSize:12,tableLayout:'fixed',width:`${W_LABEL+columns.reduce((s,c)=>s+(c.isTotal?W_TOTAL:W_COL),0)}px`}}>
+      {/* Table — own scroll container */}
+      <div style={{flex:1,overflow:'auto',borderRadius:12,border:'0.5px solid #e0e0e0',position:'relative'}}>
+        <table style={{borderCollapse:'collapse',fontSize:12,tableLayout:'fixed',width:`${W+columns.reduce((s,c)=>s+(c.isTotal?110:95),0)}px`}}>
           <colgroup>
-            <col style={{width:W_LABEL}}/>
-            {columns.map((c,i)=><col key={i} style={{width:c.isTotal?W_TOTAL:W_COL}}/>)}
+            <col style={{width:W}}/>
+            {columns.map((c,i)=><col key={i} style={{width:c.isTotal?110:95}}/>)}
           </colgroup>
           <thead>
-            <tr ref={theadRef} style={{willChange:'transform'}}>
-              <th ref={el=>setLabelRef(el)} style={{textAlign:'left',width:W_LABEL,minWidth:W_LABEL,padding:'6px 12px',fontSize:11,fontWeight:500,color:'var(--color-text-secondary)',background:BG,borderBottom:'2px solid #d0d0d0',borderRight:'2px solid #d0d0d0',willChange:'transform',zIndex:1}}>
-              </th>
+            <tr>
+              <th style={{...lc(),position:'sticky',top:0,left:0,zIndex:4,background:BG,borderBottom:'2px solid #d0d0d0',fontSize:11,fontWeight:500,color:'var(--color-text-secondary)',padding:'6px 12px'}}></th>
               {columns.map((col,i)=>(
-                <th key={i} style={{textAlign:'right',padding:'6px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:'2px solid #d0d0d0',background:col.isTotal?M_BG:BG,color:col.isTotal?M_COLOR:'var(--color-text-secondary)',borderLeft:col.isTotal?`1px solid ${M_BORDER}`:'none',borderRight:col.isTotal?`1px solid ${M_BORDER}`:'none'}}>
+                <th key={i} style={{position:'sticky',top:0,zIndex:3,textAlign:'right',padding:'6px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:'2px solid #d0d0d0',background:col.isTotal?MB:BG,color:col.isTotal?MC:'var(--color-text-secondary)',borderLeft:col.isTotal?`1px solid ${MBR}`:'none',borderRight:col.isTotal?`1px solid ${MBR}`:'none'}}>
                   <div>{col.label}</div>
-                  <div style={{fontWeight:400,fontSize:10,color:col.isTotal?M_COLOR:'var(--color-text-secondary)'}}>{col.sub}</div>
+                  <div style={{fontWeight:400,fontSize:10,color:col.isTotal?MC:'var(--color-text-secondary)'}}>{col.sub}</div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {(() => { labelIdx = 0; return null })()}
             {rows.map((row,ri)=>{
               if ('section' in row) {
                 return (
                   <tr key={ri}>
-                    <td ref={el=>setLabelRef(el)} colSpan={columns.length+1} style={{background:SEC_BG,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:'#666',borderTop:'5px solid #f5f5f5',padding:'7px 12px 5px',willChange:'transform',borderRight:'2px solid #d0d0d0'}}>
+                    <td colSpan={columns.length+1} style={{...lc(),background:SEC,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:'#666',borderTop:'5px solid #f5f5f5',padding:'7px 12px 5px',zIndex:3,position:'sticky',left:0,maxWidth:'unset',width:'auto'}}>
                       {row.section}
                     </td>
                   </tr>
@@ -327,15 +298,15 @@ export default function ReportingPage() {
               const isIndent = 'indent' in row && row.indent
               return (
                 <tr key={ri}>
-                  <td ref={el=>setLabelRef(el)} style={{textAlign:'left',width:W_LABEL,minWidth:W_LABEL,padding:'5px 12px',paddingLeft:isIndent?22:12,fontWeight:isBold?600:400,background:isBold?BG2:BG,color:isMuted?'#999':isIndent?'#777':'var(--color-text-primary)',fontSize:isMuted?11:12,borderBottom:'0.5px solid #ebebeb',borderRight:'2px solid #d0d0d0',willChange:'transform',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                  <td style={lc({paddingLeft:isIndent?22:12,fontWeight:isBold?600:400,background:isBold?BG2:BG,color:isMuted?'#999':isIndent?'#777':'var(--color-text-primary)',fontSize:isMuted?11:12})}>
                     {row.label}
                   </td>
                   {columns.map((col,ci)=>{
                     const d = agg(col.rows)
                     const val = row.get(d)
-                    const color = 'color' in row && row.color ? row.color(d) : col.isTotal ? M_COLOR : 'var(--color-text-primary)'
+                    const color = 'color' in row && row.color ? row.color(d) : col.isTotal?MC:'var(--color-text-primary)'
                     return (
-                      <td key={ci} style={{textAlign:'right',padding:'5px 10px',whiteSpace:'nowrap',borderBottom:'0.5px solid #ebebeb',background:isBold?(col.isTotal?M_BG:BG2):(col.isTotal?'#FFFDE8':'transparent'),color,fontWeight:isBold||col.isTotal?600:400,borderLeft:col.isTotal?`1px solid ${M_BORDER}`:'none',borderRight:col.isTotal?`1px solid ${M_BORDER}`:'none',fontSize:isMuted?11:12}}>
+                      <td key={ci} style={{textAlign:'right',padding:'5px 10px',whiteSpace:'nowrap',borderBottom:'0.5px solid #ebebeb',background:isBold?(col.isTotal?MB:BG2):(col.isTotal?'#FFFDE8':'transparent'),color,fontWeight:isBold||col.isTotal?600:400,borderLeft:col.isTotal?`1px solid ${MBR}`:'none',borderRight:col.isTotal?`1px solid ${MBR}`:'none',fontSize:isMuted?11:12}}>
                         {val}
                       </td>
                     )
