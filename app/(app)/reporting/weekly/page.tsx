@@ -23,7 +23,7 @@ function MultiSelect({ label, options, selected, onChange }: {
         <ChevronDown size={12} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 200, background: 'white', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 200, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
           <div onClick={() => onChange([])} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', background: allSelected ? '#FFF9E0' : 'transparent', color: allSelected ? '#b8860b' : 'var(--color-text-primary)', fontWeight: allSelected ? 500 : 400 }}>All {label}</div>
           {options.map(opt => (
             <div key={opt} onClick={() => toggle(opt)} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: selected.includes(opt) ? '#FFF9E0' : 'transparent', color: selected.includes(opt) ? '#b8860b' : 'var(--color-text-primary)' }}>
@@ -57,7 +57,7 @@ function SingleSelect({ options, value, onChange }: {
         <ChevronDown size={12} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 220, background: 'white', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', maxHeight: 260, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 220, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', maxHeight: 260, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
           {options.map(opt => (
             <div key={opt.key} onClick={() => { onChange(opt.key); setOpen(false) }} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', background: value === opt.key ? '#FFF9E0' : 'transparent', color: value === opt.key ? '#b8860b' : 'var(--color-text-primary)', fontWeight: value === opt.key ? 500 : 400 }}>
               {opt.label}
@@ -236,7 +236,7 @@ export default function ReportingPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 16px', background: 'white', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 16px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12 }}>
 
         {/* View toggle */}
         <div style={{ display: 'flex', background: 'var(--color-background-secondary)', borderRadius: 20, padding: 2, gap: 2 }}>
@@ -276,7 +276,7 @@ export default function ReportingPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: 'white', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, overflow: 'visible' }}>
         <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', minWidth: `${LABEL_W + columns.length * 100}px` }}>
             <colgroup>
@@ -285,7 +285,7 @@ export default function ReportingPage() {
             </colgroup>
             <thead>
               <tr style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                <th style={{ ...labelCellBase, background: 'white', zIndex: 11, borderBottom: '1px solid var(--color-border-secondary)', fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textAlign: 'left', padding: '6px 12px' }}></th>
+                <th style={{ ...labelCellBase, background: 'var(--color-background-primary)', zIndex: 11, borderBottom: '1px solid var(--color-border-secondary)', fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textAlign: 'left', padding: '6px 12px' }}></th>
                 {columns.map((col, i) => (
                   <th key={i} style={{ textAlign: 'right', padding: '6px 10px', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: '1px solid var(--color-border-secondary)', background: col.isTotal ? '#FFF9E0' : 'var(--color-background-primary)', color: col.isTotal ? '#b8860b' : 'var(--color-text-secondary)', borderLeft: col.isTotal ? '1px solid #F5C800' : 'none', borderRight: col.isTotal ? '1px solid #F5C800' : 'none' }}>
                     <div>{col.label}</div>
