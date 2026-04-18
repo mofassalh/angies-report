@@ -21,18 +21,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [])
 
   if (!checked) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f5f5f5' }}>
-      <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: '#F5C800', borderTopColor: 'transparent' }} />
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:'#f5f5f5' }}>
+      <div style={{ width:24, height:24, borderRadius:'50%', border:'2px solid #F5C800', borderTopColor:'transparent', animation:'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 
   return (
     <FilterProvider>
-      <div className="flex min-h-screen" style={{ backgroundColor: '#f5f5f5' }}>
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+      <div style={{ display:'flex', height:'100vh', overflow:'hidden', backgroundColor:'#f5f5f5' }}>
+        {/* Sidebar — fixed height, no scroll */}
+        <div style={{ flexShrink:0, height:'100vh', position:'sticky', top:0 }}>
+          <Sidebar />
+        </div>
+
+        {/* Main content area */}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, height:'100vh', overflow:'hidden' }}>
           {showFilterBar && <FilterBar />}
-          <main className="flex-1 p-6 overflow-auto">
+          {/* THIS is the only scrollable container */}
+          <main style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:24 }}>
             {children}
           </main>
         </div>
