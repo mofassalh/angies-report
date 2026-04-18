@@ -290,7 +290,7 @@ export default function ReportPage() {
         </div>
 
         {/* Table — isolated scroll container, NO parent overflow */}
-        <div style={{flex:1,overflow:'auto',borderRadius:12,border:'0.5px solid #e0e0e0',background:'#fff'}}>
+        <div style={{flex:1,overflow:'auto',borderRadius:0,border:'0.5px solid #e0e0e0',background:'#fff'}}>
           <table style={{borderCollapse:'collapse',fontSize:12,tableLayout:'fixed',width:`${W+columns.reduce((s,c)=>s+(c.isTotal?110:95),0)}px`}}>
             <colgroup>
               <col style={{width:W}}/>
