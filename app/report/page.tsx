@@ -300,7 +300,7 @@ export default function ReportPage() {
               <tr>
                 <th style={{position:'sticky',top:0,left:0,zIndex:20,width:W,minWidth:W,background:'#fff',borderBottom:'2px solid #d0d0d0',borderRight:'2px solid #d0d0d0',textAlign:'left',padding:'6px 12px',fontSize:11,fontWeight:500,color:'#888'}}></th>
                 {columns.map((col,i)=>(
-                  <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'6px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:'2px solid #d0d0d0',background:col.isTotal?MB:'#fff',color:col.isTotal?MC:'#888',borderLeft:col.isTotal?`1px solid ${MBR}`:'none',borderRight:col.isTotal?`1px solid ${MBR}`:'none'}}>
+                  <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'6px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:'2px solid #d0d0d0',background:col.isTotal?MB:'#FFF9E0',color:col.isTotal?MC:'#7A5F00',borderLeft:col.isTotal?`1px solid ${MBR}`:'none',borderRight:col.isTotal?`1px solid ${MBR}`:'none'}}>
                     <div>{col.label}</div>
                     <div style={{fontWeight:400,fontSize:10,color:col.isTotal?MC:'#aaa'}}>{col.sub}</div>
                   </th>
