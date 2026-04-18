@@ -11,6 +11,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const showFilterBar = !pathname.startsWith('/reporting')
+  const isReporting = pathname.startsWith('/reporting')
 
   useEffect(() => {
     const supabase = createClient()
@@ -30,16 +31,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <FilterProvider>
       <div style={{ display:'flex', height:'100vh', overflow:'hidden', backgroundColor:'#f5f5f5' }}>
-        {/* Sidebar — fixed height, no scroll */}
         <div style={{ flexShrink:0, height:'100vh', position:'sticky', top:0 }}>
           <Sidebar />
         </div>
-
-        {/* Main content area */}
         <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, height:'100vh', overflow:'hidden' }}>
           {showFilterBar && <FilterBar />}
-          {/* THIS is the only scrollable container */}
-          <main style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:24 }}>
+          <main style={{
+            flex:1,
+            overflowY: 'auto',
+            overflowX: isReporting ? 'auto' : 'hidden',
+            padding:24,
+          }}>
             {children}
           </main>
         </div>

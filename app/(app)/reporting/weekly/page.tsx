@@ -260,7 +260,7 @@ export default function ReportingPage() {
       </div>
 
       {/* Table wrapper — only overflow-x here, no overflow-y */}
-      <div style={{borderRadius:12,border:'0.5px solid #e0e0e0',overflowX:'auto'}}>
+      <div style={{borderRadius:12,border:'0.5px solid #e0e0e0'}}>
         <table style={{borderCollapse:'collapse',fontSize:12,tableLayout:'fixed',minWidth:`${205+columns.length*95}px`}}>
           <colgroup>
             <col style={{width:205}}/>
