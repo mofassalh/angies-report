@@ -229,7 +229,7 @@ export default function ReportingPage() {
   const MBR = '#D4A900'
 
   const lc = (extra?: React.CSSProperties): React.CSSProperties => ({
-    position:'sticky', left:0, zIndex:2,
+    position:'sticky', left:0, zIndex:10,
     width:W, minWidth:W,
     background:BG,
     borderRight:'2px solid #e0e0e0',
@@ -287,7 +287,7 @@ export default function ReportingPage() {
               if ('section' in row) {
                 return (
                   <tr key={ri}>
-                    <td colSpan={columns.length+1} style={{...lc(),background:SEC,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:'#666',borderTop:'5px solid #f5f5f5',padding:'7px 12px 5px',zIndex:3,position:'sticky',left:0,maxWidth:'unset',width:'auto'}}>
+                    <td colSpan={columns.length+1} style={{...lc(),background:SEC,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:'#666',borderTop:'5px solid #f5f5f5',padding:'7px 12px 5px',zIndex:10,position:'sticky',left:0,maxWidth:'unset',width:'auto'}}>
                       {row.section}
                     </td>
                   </tr>
