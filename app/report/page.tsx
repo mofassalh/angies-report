@@ -312,9 +312,8 @@ export default function ReportPage() {
                 if ('section' in row) {
                   return (
                     <tr key={ri}>
-                      <td colSpan={columns.length+1} style={{position:'sticky',left:0,zIndex:6,background:'#f0f0ee',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:'#666',borderTop:'5px solid #f5f5f5',padding:'7px 12px 5px',whiteSpace:'nowrap'}}>
-                        {row.section}
-                      </td>
+                      <td style={{position:'sticky',left:0,zIndex:6,width:205,minWidth:205,background:'#f0f0ee',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:'#666',borderTop:'5px solid #f5f5f5',padding:'7px 12px 5px',whiteSpace:'nowrap',borderRight:'2px solid #e0e0e0'}}>{row.section}</td>
+                      {columns.map((_,ci)=><td key={ci} style={{background:'#f0f0ee',borderTop:'5px solid #f5f5f5',borderBottom:'0.5px solid #ebebeb'}}/>)}
                     </tr>
                   )
                 }
