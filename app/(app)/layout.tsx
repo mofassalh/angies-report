@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 import FilterBar from '@/components/FilterBar'
@@ -9,6 +9,8 @@ import { FilterProvider } from '@/components/FilterContext'
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+  const showFilterBar = !pathname.startsWith('/reporting')
 
   useEffect(() => {
     const supabase = createClient()
@@ -29,7 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen" style={{ backgroundColor: '#f5f5f5' }}>
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <FilterBar />
+          {showFilterBar && <FilterBar />}
           <main className="flex-1 p-6 overflow-auto">
             {children}
           </main>
