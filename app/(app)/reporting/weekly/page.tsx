@@ -3,69 +3,62 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { ChevronDown } from 'lucide-react'
 
-function MultiSelect({ label, options, selected, onChange }: {
-  label: string, options: string[], selected: string[], onChange: (v: string[]) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-  const toggle = (v: string) => onChange(selected.includes(v) ? selected.filter(s => s !== v) : [...selected, v])
-  const allSelected = selected.length === 0
-  return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', border: '0.5px solid var(--color-border-secondary)', borderRadius: 20, background: allSelected ? 'var(--color-background-primary)' : '#FFF9E0', color: allSelected ? 'var(--color-text-secondary)' : '#b8860b', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: allSelected ? 400 : 500 }}>
-        <span>{allSelected ? `All ${label}` : `${selected.length} selected`}</span>
-        {!allSelected && <span onClick={e => { e.stopPropagation(); onChange([]) }} style={{ marginLeft: 2 }}>✕</span>}
-        <ChevronDown size={12} />
-      </button>
-      {open && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 200, background: '#ffffff', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-          <div onClick={() => onChange([])} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', background: allSelected ? '#FFF9E0' : 'transparent', color: allSelected ? '#b8860b' : 'var(--color-text-primary)', fontWeight: allSelected ? 500 : 400 }}>All {label}</div>
-          {options.map(opt => (
-            <div key={opt} onClick={() => toggle(opt)} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: selected.includes(opt) ? '#FFF9E0' : 'transparent', color: selected.includes(opt) ? '#b8860b' : 'var(--color-text-primary)' }}>
-              <div style={{ width: 14, height: 14, border: `1.5px solid ${selected.includes(opt) ? '#F5C800' : 'var(--color-border-secondary)'}`, borderRadius: 3, background: selected.includes(opt) ? '#F5C800' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {selected.includes(opt) && <span style={{ fontSize: 9, color: '#1A1A1A', fontWeight: 700 }}>✓</span>}
-              </div>
-              {opt}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+const MONTH_NAMES: Record<string, string> = { '01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December' }
 
-function SingleSelect({ options, value, onChange }: {
-  options: {key: string, label: string}[], value: string, onChange: (v: string) => void
+function Dropdown({ label, options, selected, multi, onChange }: {
+  label: string, options: {key:string,label:string}[], selected: string[], multi?: boolean, onChange: (v:string[]) => void
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+
   useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const h = (e: MouseEvent) => {
+      if (!btnRef.current?.contains(e.target as Node) && !menuRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [])
-  const selected = options.find(o => o.key === value)
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX })
+    }
+    setOpen(o => !o)
+  }
+
+  const toggle = (key: string) => {
+    if (!multi) { onChange([key]); setOpen(false); return }
+    onChange(selected.includes(key) ? selected.filter(s => s !== key) : [...selected, key])
+  }
+
+  const hasVal = selected.length > 0
+  const dispLabel = !hasVal ? label : selected.length === 1 ? (options.find(o => o.key === selected[0])?.label || selected[0]) : `${selected.length} selected`
+
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', border: '0.5px solid #F5C800', borderRadius: 20, background: '#FFF9E0', color: '#b8860b', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 500 }}>
-        <span>{selected?.label || '—'}</span>
-        <ChevronDown size={12} />
+    <>
+      <button ref={btnRef} onClick={handleOpen} style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', border:`0.5px solid ${hasVal ? '#D4A900' : 'var(--color-border-secondary)'}`, borderRadius:20, fontSize:12, cursor:'pointer', whiteSpace:'nowrap', background: hasVal ? '#FFF3B0' : 'var(--color-background-primary)', color: hasVal ? '#7A5F00' : 'var(--color-text-secondary)', fontWeight: hasVal ? 500 : 400 }}>
+        {dispLabel}
+        {hasVal && multi && <span onClick={e=>{e.stopPropagation();onChange([])}} style={{marginLeft:2,fontSize:11}}>✕</span>}
+        <ChevronDown size={12}/>
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, marginTop: 4, minWidth: 220, background: '#ffffff', border: '0.5px solid var(--color-border-secondary)', borderRadius: 10, overflow: 'hidden', maxHeight: 260, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-          {options.map(opt => (
-            <div key={opt.key} onClick={() => { onChange(opt.key); setOpen(false) }} style={{ padding: '9px 14px', fontSize: 12, cursor: 'pointer', background: value === opt.key ? '#FFF9E0' : 'transparent', color: value === opt.key ? '#b8860b' : 'var(--color-text-primary)', fontWeight: value === opt.key ? 500 : 400 }}>
-              {opt.label}
-            </div>
-          ))}
+        <div ref={menuRef} style={{ position:'fixed', top:pos.top, left:pos.left, zIndex:99999, minWidth:220, background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-secondary)', borderRadius:10, overflow:'hidden', boxShadow:'0 8px 24px rgba(0,0,0,0.15)', maxHeight:280, overflowY:'auto' }}>
+          {multi && <div onClick={()=>onChange([])} style={{ padding:'9px 14px', fontSize:12, cursor:'pointer', background:selected.length===0?'#FFF3B0':'transparent', color:selected.length===0?'#7A5F00':'var(--color-text-primary)', fontWeight:selected.length===0?500:400 }}>All {label}</div>}
+          {options.map(opt => {
+            const isSel = selected.includes(opt.key)
+            return (
+              <div key={opt.key} onClick={()=>toggle(opt.key)} style={{ padding:'9px 14px', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:8, background:isSel?'#FFF3B0':'transparent', color:isSel?'#7A5F00':'var(--color-text-primary)' }}>
+                {multi && <div style={{ width:14, height:14, border:`1.5px solid ${isSel?'#D4A900':'var(--color-border-secondary)'}`, borderRadius:3, background:isSel?'#D4A900':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{isSel && <span style={{fontSize:9,color:'#1A1A1A',fontWeight:700}}>✓</span>}</div>}
+                {opt.label}
+              </div>
+            )
+          })}
         </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -73,262 +66,251 @@ export default function ReportingPage() {
   const [allData, setAllData] = useState<any[]>([])
   const [restaurants, setRestaurants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'weekly'|'monthly'|'yearly'>('weekly')
+  const [viewMode, setViewMode] = useState('weekly')
   const [selLocations, setSelLocations] = useState<string[]>([])
   const [selRestaurants, setSelRestaurants] = useState<string[]>([])
-  const [fromWeek, setFromWeek] = useState<string>('')
-  const [toWeek, setToWeek] = useState<string>('')
+  const [fromWeek, setFromWeek] = useState('')
+  const [toWeek, setToWeek] = useState('')
   const [selMonths, setSelMonths] = useState<string[]>([])
   const [selYears, setSelYears] = useState<string[]>([])
   const supabase = createClient()
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetch = async () => {
       const { data: rests } = await supabase.from('report_restaurants').select('*, report_locations(name)').order('name')
       setRestaurants(rests || [])
       const { data: weekly } = await supabase.from('report_weekly_data').select('*, report_restaurants(name, brand, report_locations(name))').order('week_start')
       const d = weekly || []
       setAllData(d)
       const weeks = [...new Set(d.map((x: any) => x.week_start))].sort() as string[]
-      if (weeks.length > 0) { setFromWeek(weeks[0]); setToWeek(weeks[weeks.length - 1]) }
+      if (weeks.length > 0) { setFromWeek(weeks[0]); setToWeek(weeks[weeks.length-1]) }
       setLoading(false)
     }
-    fetchData()
+    fetch()
   }, [])
 
   const locationNames = [...new Set(restaurants.map((r: any) => r.report_locations?.name).filter(Boolean))] as string[]
-  const restaurantNames = restaurants.filter(r => selLocations.length === 0 || selLocations.includes(r.report_locations?.name)).map(r => r.name)
-
-  const baseFiltered = allData.filter(d => {
-    const loc = d.report_restaurants?.report_locations?.name
-    const rest = d.report_restaurants?.name
-    return (selLocations.length === 0 || selLocations.includes(loc)) && (selRestaurants.length === 0 || selRestaurants.includes(rest))
-  })
-
+  const restaurantNames = restaurants.filter(r => selLocations.length===0 || selLocations.includes(r.report_locations?.name)).map(r => r.name)
   const allWeeks = [...new Set(allData.map(d => d.week_start))].sort() as string[]
   const allMonths = [...new Set(allData.map(d => d.week_start.substring(0,7)))].sort() as string[]
   const allYears = [...new Set(allData.map(d => d.week_start.substring(0,4)))].sort() as string[]
 
-  const weekOptions = allWeeks.map((w, i) => ({
-    key: w,
-    label: `Week ${i+1} — ${new Date(w).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`
-  }))
+  const weekOpts = allWeeks.map((w,i) => ({ key:w, label:`Week ${i+1} — ${new Date(w).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}` }))
+  const monthOpts = allMonths.map(m => { const [y,mo]=m.split('-'); return { key:m, label:`${MONTH_NAMES[mo]} ${y}` } })
+  const yearOpts = allYears.map(y => ({ key:y, label:y }))
 
-  const MONTH_NAMES: Record<string, string> = { '01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December' }
-
-  const monthOptions = allMonths.map(m => {
-    const [year, month] = m.split('-')
-    return { key: m, label: `${MONTH_NAMES[month]} ${year}` }
+  const baseFiltered = allData.filter(d => {
+    const loc = d.report_restaurants?.report_locations?.name
+    const rest = d.report_restaurants?.name
+    return (selLocations.length===0||selLocations.includes(loc)) && (selRestaurants.length===0||selRestaurants.includes(rest))
   })
 
   const agg = (rows: any[]) => {
-    const storeTx = rows.reduce((s, d) => s + (parseInt(d.transactions_store) || 0), 0)
-    const uberTx = rows.reduce((s, d) => s + (parseInt(d.transactions_uber) || 0), 0)
-    const ddTx = rows.reduce((s, d) => s + (parseInt(d.transactions_doordash) || 0), 0)
-    const totalTx = storeTx + uberTx + ddTx
-    const storeRev = rows.reduce((s, d) => s + (parseFloat(d.revenue_store_net) || 0), 0)
-    const uberRev = rows.reduce((s, d) => s + (parseFloat(d.revenue_uber_gross) || 0), 0)
-    const ddRev = rows.reduce((s, d) => s + (parseFloat(d.revenue_doordash_gross) || 0), 0)
-    const grossRev = storeRev + uberRev + ddRev
-    const uberNet = rows.reduce((s, d) => s + (parseFloat(d.revenue_uber_net) || 0), 0)
-    const ddNet = rows.reduce((s, d) => s + (parseFloat(d.revenue_doordash_net) || 0), 0)
-    const netRev = storeRev + uberNet + ddNet
-    const costFood = rows.reduce((s, d) => s + (parseFloat(d.cost_food) || 0), 0)
-    const costStaff = rows.reduce((s, d) => s + (parseFloat(d.cost_staff) || 0), 0)
-    const costOp = rows.reduce((s, d) => s + (parseFloat(d.cost_operation) || 0), 0)
-    const totalCost = costFood + costStaff + costOp
-    const grossProfit = grossRev - totalCost
-    const netProfit = netRev - totalCost
-    const profitPct = grossRev > 0 ? netProfit / grossRev * 100 : 0
-    const perTx = totalTx > 0 ? grossRev / totalTx : 0
-    const staffPct = grossRev > 0 ? costStaff / grossRev * 100 : 0
-    const foodPct = grossRev > 0 ? costFood / grossRev * 100 : 0
-    const opPct = grossRev > 0 ? costOp / grossRev * 100 : 0
-    return { storeTx, uberTx, ddTx, totalTx, storeRev, uberRev, ddRev, grossRev, netRev, costFood, costStaff, costOp, totalCost, grossProfit, netProfit, profitPct, perTx, staffPct, foodPct, opPct }
+    const storeTx = rows.reduce((s,d)=>s+(parseInt(d.transactions_store)||0),0)
+    const uberTx = rows.reduce((s,d)=>s+(parseInt(d.transactions_uber)||0),0)
+    const ddTx = rows.reduce((s,d)=>s+(parseInt(d.transactions_doordash)||0),0)
+    const totalTx = storeTx+uberTx+ddTx
+    const storeRev = rows.reduce((s,d)=>s+(parseFloat(d.revenue_store_net)||0),0)
+    const uberGross = rows.reduce((s,d)=>s+(parseFloat(d.revenue_uber_gross)||0),0)
+    const ddGross = rows.reduce((s,d)=>s+(parseFloat(d.revenue_doordash_gross)||0),0)
+    const uberNet = rows.reduce((s,d)=>s+(parseFloat(d.revenue_uber_net)||0),0)
+    const ddNet = rows.reduce((s,d)=>s+(parseFloat(d.revenue_doordash_net)||0),0)
+    const grossRev = storeRev+uberGross+ddGross
+    const netRev = storeRev+uberNet+ddNet
+    const costFood = rows.reduce((s,d)=>s+(parseFloat(d.cost_food)||0),0)
+    const costStaff = rows.reduce((s,d)=>s+(parseFloat(d.cost_staff)||0),0)
+    const costOp = rows.reduce((s,d)=>s+(parseFloat(d.cost_operation)||0),0)
+    const totalCost = costFood+costStaff+costOp
+    const grossProfit = grossRev-totalCost
+    const netProfit = netRev-totalCost
+    return {
+      storeTx, uberTx, ddTx, totalTx,
+      storeRev, uberGross, ddGross, uberNet, ddNet, grossRev, netRev,
+      costFood, costStaff, costOp, totalCost, grossProfit, netProfit,
+      profitPct: grossRev>0?netProfit/grossRev*100:0,
+      perTx: totalTx>0?grossRev/totalTx:0,
+      staffPct: grossRev>0?costStaff/grossRev*100:0,
+      foodPct: grossRev>0?costFood/grossRev*100:0,
+      opPct: grossRev>0?costOp/grossRev*100:0,
+      foodPerTx: totalTx>0?costFood/totalTx:0,
+      staffPerTx: totalTx>0?costStaff/totalTx:0,
+      opPerTx: totalTx>0?costOp/totalTx:0,
+      totalCostPerTx: totalTx>0?totalCost/totalTx:0,
+      grossProfitPerTx: totalTx>0?grossProfit/totalTx:0,
+      netProfitPerTx: totalTx>0?netProfit/totalTx:0,
+      uberComm: uberGross>0?(uberGross-uberNet)/uberGross*100:0,
+      ddComm: ddGross>0?(ddGross-ddNet)/ddGross*100:0,
+    }
   }
 
-  const fmt = (n: number) => n === 0 ? '—' : `$${Math.round(n).toLocaleString('en-AU')}`
-  const fmtPct = (n: number) => n === 0 ? '—' : `${n.toFixed(1)}%`
-  const fmtN = (n: number) => n === 0 ? '—' : n.toLocaleString('en-AU')
-  const getProfitColor = (val: number) => val >= 20 ? '#16a34a' : val >= 10 ? '#d97706' : '#dc2626'
+  const f$ = (n:number) => n===0?'—':`$${Math.round(n).toLocaleString('en-AU')}`
+  const f$d = (n:number) => n===0?'—':`$${n.toFixed(2)}`
+  const fp = (n:number) => n===0?'—':`${n.toFixed(1)}%`
+  const fn = (n:number) => n===0?'—':n.toLocaleString('en-AU')
+  const pc = (v:number) => v>=20?'#16a34a':v>=10?'#d97706':'#dc2626'
 
-  const tableRows = [
-    { section: 'Summary' },
-    { key: 'totalTx', label: 'Total # Transactions', format: fmtN },
-    { key: 'perTx', label: 'Per Transaction Revenue', format: fmt },
-    { key: 'staffPct', label: 'Staff Cost %', format: fmtPct },
-    { key: 'foodPct', label: 'Food Cost %', format: fmtPct },
-    { key: 'opPct', label: 'Operation Cost %', format: fmtPct },
-    { section: 'Revenue' },
-    { key: 'grossRev', label: 'Total Gross Revenue', format: fmt },
-    { key: 'netRev', label: 'Total Net Revenue', format: fmt },
-    { section: 'Costs' },
-    { key: 'costFood', label: 'Food', format: fmt, indent: true },
-    { key: 'costStaff', label: 'Staff', format: fmt, indent: true },
-    { key: 'costOp', label: 'Operation', format: fmt, indent: true },
-    { key: 'totalCost', label: 'Total Cost', format: fmt, bold: true },
-    { section: 'Profit' },
-    { key: 'grossProfit', label: 'Gross Profit', format: fmt, profit: true, bold: true },
-    { key: 'netProfit', label: 'Net Profit', format: fmt, profit: true, bold: true },
-    { key: 'profitPct', label: 'Profit %', format: fmtPct, profitPct: true },
-    { section: 'Transactions' },
-    { key: 'storeTx', label: 'Store', format: fmtN, indent: true },
-    { key: 'uberTx', label: 'Uber Eats', format: fmtN, indent: true },
-    { key: 'ddTx', label: 'DoorDash', format: fmtN, indent: true },
-  ]
+  type Col = { key:string, label:string, sub:string, isTotal:boolean, rows:any[] }
+  const columns: Col[] = []
 
-  type Col = { key: string, label: string, sub: string, isTotal: boolean, rows: any[] }
-  let columns: Col[] = []
-
-  if (viewMode === 'weekly') {
-    const selectedWeeks = allWeeks.filter(w => w >= fromWeek && w <= toWeek)
-    const monthMap: Record<string, string[]> = {}
-    selectedWeeks.forEach(w => {
-      const m = w.substring(0, 7)
-      if (!monthMap[m]) monthMap[m] = []
-      monthMap[m].push(w)
+  if (viewMode==='weekly') {
+    const sel = allWeeks.filter(w=>w>=fromWeek&&w<=toWeek)
+    const mMap: Record<string,string[]> = {}
+    sel.forEach(w=>{ const m=w.substring(0,7); if(!mMap[m])mMap[m]=[]; mMap[m].push(w) })
+    Object.entries(mMap).sort().forEach(([m,weeks])=>{
+      const [y,mo]=m.split('-')
+      weeks.forEach(w=>{ const idx=allWeeks.indexOf(w)+1; columns.push({ key:w, label:`Week ${idx}`, sub:new Date(w).toLocaleDateString('en-AU',{day:'numeric',month:'short'}), isTotal:false, rows:baseFiltered.filter(d=>d.week_start===w) }) })
+      columns.push({ key:`t-${m}`, label:MONTH_NAMES[mo]||mo, sub:y, isTotal:true, rows:baseFiltered.filter(d=>weeks.includes(d.week_start)) })
     })
-    Object.entries(monthMap).sort().forEach(([month, weeks]) => {
-      const [year, mo] = month.split('-')
-      weeks.forEach(w => {
-        const idx = allWeeks.indexOf(w) + 1
-        columns.push({ key: w, label: `Week ${idx}`, sub: new Date(w).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }), isTotal: false, rows: baseFiltered.filter(d => d.week_start === w) })
-      })
-      columns.push({ key: `total-${month}`, label: MONTH_NAMES[mo] || mo, sub: year, isTotal: true, rows: baseFiltered.filter(d => weeks.includes(d.week_start)) })
-    })
-  } else if (viewMode === 'monthly') {
-    const months = selMonths.length > 0 ? allMonths.filter(m => selMonths.includes(m)) : allMonths
-    const yearMap: Record<string, string[]> = {}
-    months.forEach(m => { const y = m.substring(0,4); if (!yearMap[y]) yearMap[y] = []; yearMap[y].push(m) })
-    Object.entries(yearMap).sort().forEach(([year, mos]) => {
-      mos.forEach(m => {
-        const [y, mo] = m.split('-')
-        columns.push({ key: m, label: MONTH_NAMES[mo] || mo, sub: y, isTotal: false, rows: baseFiltered.filter(d => d.week_start.startsWith(m)) })
-      })
-      columns.push({ key: `total-${year}`, label: year, sub: 'Annual', isTotal: true, rows: baseFiltered.filter(d => mos.some(m => d.week_start.startsWith(m))) })
+  } else if (viewMode==='monthly') {
+    const months = selMonths.length>0?allMonths.filter(m=>selMonths.includes(m)):allMonths
+    const yMap: Record<string,string[]> = {}
+    months.forEach(m=>{ const y=m.substring(0,4); if(!yMap[y])yMap[y]=[]; yMap[y].push(m) })
+    Object.entries(yMap).sort().forEach(([y,mos])=>{
+      mos.forEach(m=>{ const [,mo]=m.split('-'); columns.push({ key:m, label:MONTH_NAMES[mo]||mo, sub:y, isTotal:false, rows:baseFiltered.filter(d=>d.week_start.startsWith(m)) }) })
+      columns.push({ key:`t-${y}`, label:y, sub:'Annual', isTotal:true, rows:baseFiltered.filter(d=>mos.some(m=>d.week_start.startsWith(m))) })
     })
   } else {
-    const years = selYears.length > 0 ? allYears.filter(y => selYears.includes(y)) : allYears
-    years.forEach(y => {
-      const months = allMonths.filter(m => m.startsWith(y))
-      months.forEach(m => {
-        const [yr, mo] = m.split('-')
-        columns.push({ key: m, label: MONTH_NAMES[mo] || mo, sub: yr, isTotal: false, rows: baseFiltered.filter(d => d.week_start.startsWith(m)) })
-      })
-      columns.push({ key: `total-${y}`, label: y, sub: 'Annual', isTotal: true, rows: baseFiltered.filter(d => d.week_start.startsWith(y)) })
+    const years = selYears.length>0?allYears.filter(y=>selYears.includes(y)):allYears
+    years.forEach(y=>{
+      const mos = allMonths.filter(m=>m.startsWith(y))
+      mos.forEach(m=>{ const [,mo]=m.split('-'); columns.push({ key:m, label:MONTH_NAMES[mo]||mo, sub:y, isTotal:false, rows:baseFiltered.filter(d=>d.week_start.startsWith(m)) }) })
+      columns.push({ key:`t-${y}`, label:y, sub:'Annual', isTotal:true, rows:baseFiltered.filter(d=>d.week_start.startsWith(y)) })
     })
   }
 
-  const LABEL_W = 200
+  type Row = { section:string }|{ label:string, get:(d:ReturnType<typeof agg>)=>string, indent?:boolean, bold?:boolean, muted?:boolean, color?:(d:ReturnType<typeof agg>)=>string }
 
-  const labelCellBase: React.CSSProperties = {
-    width: LABEL_W, minWidth: LABEL_W, maxWidth: LABEL_W,
-    position: 'sticky', left: 0, zIndex: 3,
-    borderRight: '1px solid var(--color-border-secondary)',
-    padding: '5px 12px',
-    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-    fontSize: 12,
+  const rows: Row[] = [
+    { section:'Summary' },
+    { label:'Total # Transactions', get:d=>fn(d.totalTx) },
+    { label:'Per Transaction Revenue', get:d=>f$d(d.perTx) },
+    { label:'Staff Cost %', get:d=>fp(d.staffPct), indent:true },
+    { label:'Food Cost %', get:d=>fp(d.foodPct), indent:true },
+    { label:'Operation Cost %', get:d=>fp(d.opPct), indent:true },
+    { section:'Revenue' },
+    { label:'Store Revenue', get:d=>f$(d.storeRev), indent:true },
+    { label:'Total Gross Revenue', get:d=>f$(d.grossRev), bold:true },
+    { label:'Total Net Revenue', get:d=>f$(d.netRev), bold:true },
+    { section:'Costs' },
+    { label:'Food Cost', get:d=>f$(d.costFood), indent:true },
+    { label:'Per Transaction', get:d=>f$d(d.foodPerTx), indent:true, muted:true },
+    { label:'Staff Cost', get:d=>f$(d.costStaff), indent:true },
+    { label:'Per Transaction', get:d=>f$d(d.staffPerTx), indent:true, muted:true },
+    { label:'Operation Cost', get:d=>f$(d.costOp), indent:true },
+    { label:'Per Transaction', get:d=>f$d(d.opPerTx), indent:true, muted:true },
+    { label:'Total Cost', get:d=>f$(d.totalCost), bold:true },
+    { label:'Per Transaction', get:d=>f$d(d.totalCostPerTx), bold:true, muted:true },
+    { section:'Profit' },
+    { label:'Gross Profit', get:d=>f$(d.grossProfit), bold:true, color:d=>d.grossProfit>=0?'#16a34a':'#dc2626' },
+    { label:'Per Transaction', get:d=>f$d(d.grossProfitPerTx), muted:true, color:d=>d.grossProfitPerTx>=0?'#16a34a':'#dc2626' },
+    { label:'Net Profit', get:d=>f$(d.netProfit), bold:true, color:d=>d.netProfit>=0?'#16a34a':'#dc2626' },
+    { label:'Per Transaction', get:d=>f$d(d.netProfitPerTx), muted:true, color:d=>d.netProfitPerTx>=0?'#16a34a':'#dc2626' },
+    { label:'Profit %', get:d=>fp(d.profitPct), color:d=>pc(d.profitPct) },
+    { section:'Transactions' },
+    { label:'Store', get:d=>fn(d.storeTx), indent:true },
+    { label:'Uber Eats', get:d=>fn(d.uberTx), indent:true },
+    { label:'DoorDash', get:d=>fn(d.ddTx), indent:true },
+    { label:'Total', get:d=>fn(d.totalTx), bold:true },
+    { section:'Delivery Partners' },
+    { label:'Uber Eats Gross', get:d=>f$(d.uberGross), indent:true },
+    { label:'Uber Eats Net', get:d=>f$(d.uberNet), indent:true },
+    { label:'Commission %', get:d=>fp(d.uberComm), indent:true, muted:true, color:_d=>'#dc2626' },
+    { label:'DoorDash Gross', get:d=>f$(d.ddGross), indent:true },
+    { label:'DoorDash Net', get:d=>f$(d.ddNet), indent:true },
+    { label:'Commission %', get:d=>fp(d.ddComm), indent:true, muted:true, color:_d=>'#dc2626' },
+  ]
+
+  const STICKY_BG = '#ffffff'
+  const SECTION_BG = '#f0f0ee'
+  const BOLD_BG = '#f7f7f7'
+  const MONTH_BG = '#FFF3B0'
+  const MONTH_COLOR = '#7A5F00'
+  const MONTH_BORDER = '#D4A900'
+
+  const lcBase: React.CSSProperties = {
+    position:'sticky', left:0, zIndex:3,
+    background:STICKY_BG,
+    borderRight:`2px solid #e0e0e0`,
+    textAlign:'left', padding:'5px 12px',
+    whiteSpace:'nowrap', fontSize:12,
+    color:'var(--color-text-primary)',
+    borderBottom:'0.5px solid #ebebeb',
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-secondary)' }}>Loading...</div>
+  if (loading) return <div style={{padding:40,textAlign:'center',color:'var(--color-text-secondary)'}}>Loading...</div>
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 16px', background: '#ffffff', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12 }}>
-
-        {/* View toggle */}
-        <div style={{ display: 'flex', background: 'var(--color-background-secondary)', borderRadius: 20, padding: 2, gap: 2 }}>
-          {(['weekly','monthly','yearly'] as const).map(mode => (
-            <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '4px 16px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none', background: viewMode === mode ? '#F5C800' : 'transparent', color: viewMode === mode ? '#1A1A1A' : 'var(--color-text-secondary)' }}>
-              {mode.charAt(0).toUpperCase() + mode.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ width: 1, height: 20, background: 'var(--color-border-tertiary)', flexShrink: 0 }} />
-
-        <MultiSelect label="Locations" options={locationNames} selected={selLocations} onChange={v => { setSelLocations(v); setSelRestaurants([]) }} />
-        <MultiSelect label="Restaurants" options={restaurantNames} selected={selRestaurants} onChange={setSelRestaurants} />
-
-        <div style={{ width: 1, height: 20, background: 'var(--color-border-tertiary)', flexShrink: 0 }} />
-
-        {viewMode === 'weekly' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>From</span>
-            <SingleSelect options={weekOptions} value={fromWeek} onChange={setFromWeek} />
-            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>→</span>
-            <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>To</span>
-            <SingleSelect options={weekOptions} value={toWeek} onChange={setToWeek} />
-          </div>
-        )}
-        {viewMode === 'monthly' && (
-          <MultiSelect label="Months" options={monthOptions.map(m => m.label)} selected={selMonths.map(m => monthOptions.find(o => o.key === m)?.label || m)} onChange={labels => setSelMonths(labels.map(l => monthOptions.find(o => o.label === l)?.key || l))} />
-        )}
-        {viewMode === 'yearly' && (
-          <MultiSelect label="Years" options={allYears} selected={selYears} onChange={setSelYears} />
-        )}
-
-        {(selLocations.length > 0 || selRestaurants.length > 0) && (
-          <button onClick={() => { setSelLocations([]); setSelRestaurants([]) }} style={{ padding: '5px 12px', border: '0.5px solid #ffcccc', borderRadius: 20, background: '#fff5f5', color: '#cc0000', fontSize: 12, cursor: 'pointer' }}>Clear</button>
-        )}
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',padding:'10px 14px',background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderRadius:12}}>
+        <Dropdown label="Weekly" options={[{key:'weekly',label:'Weekly'},{key:'monthly',label:'Monthly'},{key:'yearly',label:'Yearly'}]} selected={[viewMode]} onChange={v=>{setViewMode(v[0]);setSelMonths([]);setSelYears([])}} />
+        <div style={{width:1,height:20,background:'var(--color-border-tertiary)'}}/>
+        <Dropdown label="Locations" options={locationNames.map(l=>({key:l,label:l}))} selected={selLocations} multi onChange={v=>{setSelLocations(v);setSelRestaurants([])}} />
+        <Dropdown label="Restaurants" options={restaurantNames.map(r=>({key:r,label:r}))} selected={selRestaurants} multi onChange={setSelRestaurants} />
+        <div style={{width:1,height:20,background:'var(--color-border-tertiary)'}}/>
+        {viewMode==='weekly' && <>
+          <span style={{fontSize:11,color:'var(--color-text-secondary)'}}>From</span>
+          <Dropdown label="From" options={weekOpts} selected={[fromWeek]} onChange={v=>setFromWeek(v[0])} />
+          <span style={{fontSize:11,color:'var(--color-text-secondary)'}}>To</span>
+          <Dropdown label="To" options={weekOpts} selected={[toWeek]} onChange={v=>setToWeek(v[0])} />
+        </>}
+        {viewMode==='monthly' && <Dropdown label="Months" options={monthOpts} selected={selMonths} multi onChange={setSelMonths} />}
+        {viewMode==='yearly' && <Dropdown label="Years" options={yearOpts} selected={selYears} multi onChange={setSelYears} />}
+        {(selLocations.length>0||selRestaurants.length>0) && <button onClick={()=>{setSelLocations([]);setSelRestaurants([])}} style={{padding:'5px 12px',border:'0.5px solid #ffcccc',borderRadius:20,background:'#fff5f5',color:'#cc0000',fontSize:12,cursor:'pointer'}}>Clear</button>}
       </div>
 
-      {/* Table */}
-      <div style={{ background: '#ffffff', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, overflow: 'visible' }}>
-        <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
-          <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', minWidth: `${LABEL_W + columns.length * 100}px` }}>
-            <colgroup>
-              <col style={{ width: LABEL_W }} />
-              {columns.map((col, i) => <col key={i} style={{ width: col.isTotal ? 110 : 95 }} />)}
-            </colgroup>
-            <thead>
-              <tr style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                <th style={{ ...labelCellBase, background: '#ffffff', zIndex: 11, borderBottom: '1px solid var(--color-border-secondary)', fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textAlign: 'left', padding: '6px 12px' }}></th>
-                {columns.map((col, i) => (
-                  <th key={i} style={{ textAlign: 'right', padding: '6px 10px', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: '1px solid var(--color-border-secondary)', background: col.isTotal ? '#FFF9E0' : 'var(--color-background-primary)', color: col.isTotal ? '#b8860b' : 'var(--color-text-secondary)', borderLeft: col.isTotal ? '1px solid #F5C800' : 'none', borderRight: col.isTotal ? '1px solid #F5C800' : 'none' }}>
-                    <div>{col.label}</div>
-                    <div style={{ fontWeight: 400, fontSize: 10, color: col.isTotal ? '#b8860b' : 'var(--color-text-secondary)' }}>{col.sub}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {tableRows.map((row, ri) => {
-                if ('section' in row) {
-                  return (
-                    <tr key={ri}>
-                      <td colSpan={columns.length + 1} style={{ ...labelCellBase, background: 'var(--color-background-secondary)', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-secondary)', zIndex: 4, maxWidth: 'unset', width: 'auto' }}>
-                        {row.section}
-                      </td>
-                    </tr>
-                  )
-                }
+      {/* Table wrapper — only overflow-x here, no overflow-y */}
+      <div style={{borderRadius:12,border:'0.5px solid #e0e0e0',overflowX:'auto'}}>
+        <table style={{borderCollapse:'collapse',fontSize:12,tableLayout:'fixed',minWidth:`${205+columns.length*95}px`}}>
+          <colgroup>
+            <col style={{width:205}}/>
+            {columns.map((c,i)=><col key={i} style={{width:c.isTotal?110:95}}/>)}
+          </colgroup>
+          <thead>
+            <tr style={{position:'sticky',top:0,zIndex:5}}>
+              <th style={{...lcBase,zIndex:6,background:STICKY_BG,borderBottom:'2px solid #d0d0d0',fontSize:11,fontWeight:500,color:'var(--color-text-secondary)',padding:'6px 12px'}}></th>
+              {columns.map((col,i)=>(
+                <th key={i} style={{textAlign:'right',padding:'6px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:'2px solid #d0d0d0',position:'sticky',top:0,zIndex:4,background:col.isTotal?MONTH_BG:STICKY_BG,color:col.isTotal?MONTH_COLOR:'var(--color-text-secondary)',borderLeft:col.isTotal?`1px solid ${MONTH_BORDER}`:'none',borderRight:col.isTotal?`1px solid ${MONTH_BORDER}`:'none'}}>
+                  <div>{col.label}</div>
+                  <div style={{fontWeight:400,fontSize:10,color:col.isTotal?MONTH_COLOR:'var(--color-text-secondary)'}}>{col.sub}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row,ri)=>{
+              if ('section' in row) {
                 return (
                   <tr key={ri}>
-                    <td style={{ ...labelCellBase, paddingLeft: row.indent ? 24 : 12, fontWeight: row.bold ? 600 : 400, background: row.bold ? 'var(--color-background-secondary)' : 'var(--color-background-primary)', color: row.indent ? 'var(--color-text-secondary)' : 'var(--color-text-primary)', textAlign: 'left' }}>
-                      {row.label}
+                    <td colSpan={columns.length+1} style={{...lcBase,background:SECTION_BG,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:'#666',borderTop:'6px solid #f5f5f5',padding:'7px 12px 5px',zIndex:4,position:'sticky',left:0,maxWidth:'unset',width:'auto'}}>
+                      {row.section}
                     </td>
-                    {columns.map((col, ci) => {
-                      const d = agg(col.rows)
-                      const val = (d as any)[row.key as string] as number
-                      const formatted = row.format(val)
-                      let color: string | undefined
-                      if (row.profit) color = val >= 0 ? '#16a34a' : '#dc2626'
-                      if (row.profitPct) color = getProfitColor(val)
-                      return (
-                        <td key={ci} style={{ textAlign: 'right', padding: '5px 10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: '0.5px solid var(--color-border-tertiary)', background: row.bold ? (col.isTotal ? '#FFF9E0' : 'var(--color-background-secondary)') : (col.isTotal ? '#FFFDE8' : 'transparent'), color: color || (col.isTotal ? '#b8860b' : 'var(--color-text-primary)'), fontWeight: row.bold || col.isTotal ? 600 : 400, borderLeft: col.isTotal ? '1px solid #F5C800' : 'none', borderRight: col.isTotal ? '1px solid #F5C800' : 'none' }}>
-                          {formatted}
-                        </td>
-                      )
-                    })}
                   </tr>
                 )
-              })}
-            </tbody>
-          </table>
-        </div>
+              }
+              const isBold = row.bold
+              const isMuted = row.muted
+              const isIndent = row.indent
+              return (
+                <tr key={ri}>
+                  <td style={{...lcBase, paddingLeft:isIndent?22:12, fontWeight:isBold?600:400, background:isBold?BOLD_BG:STICKY_BG, color:isMuted?'#999':isIndent?'#777':'var(--color-text-primary)', fontSize:isMuted?11:12}}>
+                    {row.label}
+                  </td>
+                  {columns.map((col,ci)=>{
+                    const d = agg(col.rows)
+                    const val = row.get(d)
+                    const color = row.color ? row.color(d) : col.isTotal ? MONTH_COLOR : 'var(--color-text-primary)'
+                    return (
+                      <td key={ci} style={{textAlign:'right',padding:'5px 10px',whiteSpace:'nowrap',borderBottom:'0.5px solid #ebebeb',background:isBold?(col.isTotal?MONTH_BG:BOLD_BG):(col.isTotal?'#FFFDE8':'transparent'),color,fontWeight:isBold||col.isTotal?600:400,borderLeft:col.isTotal?`1px solid ${MONTH_BORDER}`:'none',borderRight:col.isTotal?`1px solid ${MONTH_BORDER}`:'none',fontSize:isMuted?11:12}}>
+                        {val}
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )
