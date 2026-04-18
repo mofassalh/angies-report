@@ -1,100 +1,232 @@
 'use client'
-import { useFilters } from '@/components/FilterContext'
+import { useEffect, useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase'
+import { ChevronDown } from 'lucide-react'
+
+function MultiSelect({ label, options, selected, onChange }: {
+  label: string, options: string[], selected: string[], onChange: (v: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+  const toggle = (v: string) => onChange(selected.includes(v) ? selected.filter(s => s !== v) : [...selected, v])
+  const allSelected = selected.length === 0
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '0.5px solid var(--color-border-secondary)', borderRadius: 'var(--border-radius-md)', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 13, cursor: 'pointer', minWidth: 160 }}>
+        <span style={{ flex: 1, textAlign: 'left' }}>{allSelected ? `All ${label}` : `${selected.length} selected`}</span>
+        {!allSelected && <span onClick={e => { e.stopPropagation(); onChange([]) }} style={{ color: 'var(--color-text-secondary)', fontSize: 11 }}>✕</span>}
+        <ChevronDown size={14} />
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, marginTop: 4, minWidth: 200, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 'var(--border-radius-md)', overflow: 'hidden' }}>
+          <div onClick={() => onChange([])} style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', background: allSelected ? '#FFF9E0' : 'transparent', color: allSelected ? '#b8860b' : 'var(--color-text-primary)', fontWeight: allSelected ? 500 : 400 }}>All {label}</div>
+          {options.map(opt => (
+            <div key={opt} onClick={() => toggle(opt)} style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: selected.includes(opt) ? '#FFF9E0' : 'transparent', color: selected.includes(opt) ? '#b8860b' : 'var(--color-text-primary)' }}>
+              <div style={{ width: 14, height: 14, border: `1.5px solid ${selected.includes(opt) ? '#F5C800' : 'var(--color-border-secondary)'}`, borderRadius: 3, background: selected.includes(opt) ? '#F5C800' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {selected.includes(opt) && <span style={{ fontSize: 10, color: '#1A1A1A', fontWeight: 700 }}>✓</span>}
+              </div>
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function MonthlyReportPage() {
-  const { filteredData, loading } = useFilters()
+  const [allData, setAllData] = useState<any[]>([])
+  const [restaurants, setRestaurants] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selLocations, setSelLocations] = useState<string[]>([])
+  const [selRestaurants, setSelRestaurants] = useState<string[]>([])
+  const supabase = createClient()
 
-  const fmt = (n: number) => `$${n.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: rests } = await supabase.from('report_restaurants').select('*, report_locations(name)').order('name')
+      setRestaurants(rests || [])
+      const { data: weekly } = await supabase.from('report_weekly_data').select('*, report_restaurants(name, brand, report_locations(name))').order('week_start')
+      setAllData(weekly || [])
+      setLoading(false)
+    }
+    fetchData()
+  }, [])
 
-  const byMonth: Record<string, any[]> = {}
+  const locationNames = [...new Set(restaurants.map((r: any) => r.report_locations?.name).filter(Boolean))] as string[]
+  const restaurantNames = restaurants.filter(r => selLocations.length === 0 || selLocations.includes(r.report_locations?.name)).map(r => r.name)
+
+  const filteredData = allData.filter(d => {
+    const loc = d.report_restaurants?.report_locations?.name
+    const rest = d.report_restaurants?.name
+    return (selLocations.length === 0 || selLocations.includes(loc)) && (selRestaurants.length === 0 || selRestaurants.includes(rest))
+  })
+
+  const monthMap: Record<string, any[]> = {}
   filteredData.forEach(d => {
     const date = new Date(d.week_start)
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    if (!byMonth[key]) byMonth[key] = []
-    byMonth[key].push(d)
+    const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`
+    if (!monthMap[key]) monthMap[key] = []
+    monthMap[key].push(d)
   })
-  const months = Object.entries(byMonth).sort((a, b) => a[0].localeCompare(b[0]))
 
-  const getSummary = (rows: any[]) => {
+  const yearMap: Record<string, string[]> = {}
+  Object.keys(monthMap).sort().forEach(m => {
+    const year = m.split('-')[0]
+    if (!yearMap[year]) yearMap[year] = []
+    yearMap[year].push(m)
+  })
+
+  const agg = (rows: any[]) => {
+    const storeTx = rows.reduce((s, d) => s + (parseInt(d.transactions_store) || 0), 0)
+    const uberTx = rows.reduce((s, d) => s + (parseInt(d.transactions_uber) || 0), 0)
+    const ddTx = rows.reduce((s, d) => s + (parseInt(d.transactions_doordash) || 0), 0)
+    const totalTx = storeTx + uberTx + ddTx
     const storeRev = rows.reduce((s, d) => s + (parseFloat(d.revenue_store_net) || 0), 0)
     const uberRev = rows.reduce((s, d) => s + (parseFloat(d.revenue_uber_gross) || 0), 0)
     const ddRev = rows.reduce((s, d) => s + (parseFloat(d.revenue_doordash_gross) || 0), 0)
-    const totalRev = storeRev + uberRev + ddRev
+    const grossRev = storeRev + uberRev + ddRev
+    const uberNet = rows.reduce((s, d) => s + (parseFloat(d.revenue_uber_net) || 0), 0)
+    const ddNet = rows.reduce((s, d) => s + (parseFloat(d.revenue_doordash_net) || 0), 0)
+    const netRev = storeRev + uberNet + ddNet
     const costFood = rows.reduce((s, d) => s + (parseFloat(d.cost_food) || 0), 0)
     const costStaff = rows.reduce((s, d) => s + (parseFloat(d.cost_staff) || 0), 0)
     const costOp = rows.reduce((s, d) => s + (parseFloat(d.cost_operation) || 0), 0)
     const totalCost = costFood + costStaff + costOp
-    const profit = totalRev - totalCost
-    const margin = totalRev > 0 ? (profit / totalRev * 100) : 0
-    const totalTx = rows.reduce((s, d) => s + (parseInt(d.transactions_store) || 0) + (parseInt(d.transactions_uber) || 0) + (parseInt(d.transactions_doordash) || 0), 0)
-    const weeks = [...new Set(rows.map(d => d.week_start))].length
-    return { storeRev, uberRev, ddRev, totalRev, costFood, costStaff, costOp, totalCost, profit, margin, totalTx, weeks }
+    const grossProfit = grossRev - totalCost
+    const netProfit = netRev - totalCost
+    const profitPct = grossRev > 0 ? netProfit / grossRev * 100 : 0
+    const perTx = totalTx > 0 ? grossRev / totalTx : 0
+    const staffPct = grossRev > 0 ? costStaff / grossRev * 100 : 0
+    const foodPct = grossRev > 0 ? costFood / grossRev * 100 : 0
+    const opPct = grossRev > 0 ? costOp / grossRev * 100 : 0
+    return { storeTx, uberTx, ddTx, totalTx, storeRev, uberRev, ddRev, grossRev, netRev, costFood, costStaff, costOp, totalCost, grossProfit, netProfit, profitPct, perTx, staffPct, foodPct, opPct }
   }
+
+  const fmt = (n: number) => n === 0 ? '—' : `$${Math.round(n).toLocaleString('en-AU')}`
+  const fmtPct = (n: number) => n === 0 ? '—' : `${n.toFixed(1)}%`
+  const fmtN = (n: number) => n === 0 ? '—' : n.toLocaleString('en-AU')
+
+  const MONTH_NAMES: Record<string, string> = { '01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December' }
+
+  const rows = [
+    { section: 'Summary' },
+    { key: 'totalTx', label: 'Total # Transactions', format: fmtN },
+    { key: 'perTx', label: 'Per Transaction Revenue', format: fmt },
+    { key: 'staffPct', label: 'Staff Cost %', format: fmtPct },
+    { key: 'foodPct', label: 'Food Cost %', format: fmtPct },
+    { key: 'opPct', label: 'Operation Cost %', format: fmtPct },
+    { section: 'Revenue' },
+    { key: 'grossRev', label: 'Total Gross Revenue', format: fmt },
+    { key: 'netRev', label: 'Total Net Revenue', format: fmt },
+    { section: 'Costs' },
+    { key: 'costFood', label: 'Food', format: fmt, indent: true },
+    { key: 'costStaff', label: 'Staff', format: fmt, indent: true },
+    { key: 'costOp', label: 'Operation', format: fmt, indent: true },
+    { key: 'totalCost', label: 'Total Cost', format: fmt, bold: true },
+    { section: 'Profit' },
+    { key: 'grossProfit', label: 'Gross Profit', format: fmt, profit: true },
+    { key: 'netProfit', label: 'Net Profit', format: fmt, profit: true },
+    { key: 'profitPct', label: 'Profit %', format: fmtPct, profitPct: true },
+    { section: 'Transactions' },
+    { key: 'storeTx', label: 'Store', format: fmtN, indent: true },
+    { key: 'uberTx', label: 'Uber Eats', format: fmtN, indent: true },
+    { key: 'ddTx', label: 'DoorDash', format: fmtN, indent: true },
+  ]
+
+  const getProfitColor = (val: number) => val >= 20 ? '#16a34a' : val >= 10 ? '#d97706' : '#dc2626'
+
+  type Col = { type: 'month', key: string } | { type: 'year', key: string, months: string[] }
+  const columns: Col[] = []
+  Object.entries(yearMap).forEach(([year, months]) => {
+    months.forEach(m => columns.push({ type: 'month', key: m }))
+    columns.push({ type: 'year', key: year, months })
+  })
+
+  const getColData = (col: Col) => {
+    if (col.type === 'month') return agg(monthMap[col.key] || [])
+    const allRows = col.months.flatMap(m => monthMap[m] || [])
+    return agg(allRows)
+  }
+
+  const getColLabel = (col: Col) => {
+    if (col.type === 'year') return { top: col.key, bottom: 'Annual' }
+    const [year, month] = col.key.split('-')
+    return { top: MONTH_NAMES[month] || month, bottom: year }
+  }
+
+  const isYear = (col: Col) => col.type === 'year'
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-secondary)' }}>Loading...</div>
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6" style={{ color: '#1A1A1A' }}>Monthly Report</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-primary)', marginRight: 8 }}>Monthly Report</h2>
+        <MultiSelect label="Locations" options={locationNames} selected={selLocations} onChange={v => { setSelLocations(v); setSelRestaurants([]) }} />
+        <MultiSelect label="Restaurants" options={restaurantNames} selected={selRestaurants} onChange={setSelRestaurants} />
+        {(selLocations.length > 0 || selRestaurants.length > 0) && (
+          <button onClick={() => { setSelLocations([]); setSelRestaurants([]) }} style={{ padding: '6px 12px', border: '0.5px solid #ffcccc', borderRadius: 'var(--border-radius-md)', background: '#fff0f0', color: '#cc0000', fontSize: 12, cursor: 'pointer' }}>Clear all</button>
+        )}
+      </div>
 
-      {/* Monthly summary table */}
-      <div className="rounded-2xl bg-white overflow-hidden mb-6" style={{ border: '1px solid #e5e5e5' }}>
-        <div className="px-5 py-3" style={{ backgroundColor: '#FFF9E0', borderBottom: '1px solid #e5e5e5' }}>
-          <h3 className="font-bold" style={{ color: '#1A1A1A' }}>Monthly Summary</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
-                {['Month', 'Weeks', 'Store Rev', 'Uber Rev', 'DD Rev', 'Total Rev', 'Total Cost', 'Food', 'Staff', 'Ops', 'Profit', 'Margin', 'Transactions'].map(h => (
-                  <th key={h} className="text-right first:text-left py-2 px-3 font-medium text-xs" style={{ color: '#888' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {months.map(([month, rows]) => {
-                const s = getSummary(rows)
-                const label = new Date(month + '-01').toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+      <div style={{ overflowX: 'auto', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-secondary)', borderRadius: 'var(--border-radius-lg)' }}>
+        <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', background: 'var(--color-background-primary)', borderBottom: '1px solid var(--color-border-secondary)', minWidth: 180, position: 'sticky', left: 0, zIndex: 2 }}></th>
+              {columns.map((col, i) => {
+                const lbl = getColLabel(col)
+                const isY = isYear(col)
                 return (
-                  <tr key={month} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                    <td className="py-2.5 px-3 font-semibold" style={{ color: '#1A1A1A' }}>{label}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#888' }}>{s.weeks}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#F5C800' }}>{fmt(s.storeRev)}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#06C167' }}>{fmt(s.uberRev)}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#FF3008' }}>{fmt(s.ddRev)}</td>
-                    <td className="py-2.5 px-3 text-right font-semibold" style={{ color: '#1A1A1A' }}>{fmt(s.totalRev)}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#888' }}>{fmt(s.totalCost)}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#f97316' }}>{fmt(s.costFood)}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#8b5cf6' }}>{fmt(s.costStaff)}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#4a9eff' }}>{fmt(s.costOp)}</td>
-                    <td className="py-2.5 px-3 text-right font-semibold" style={{ color: s.profit >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(s.profit)}</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: s.margin >= 20 ? '#16a34a' : s.margin >= 10 ? '#d97706' : '#dc2626' }}>{s.margin.toFixed(1)}%</td>
-                    <td className="py-2.5 px-3 text-right" style={{ color: '#555' }}>{s.totalTx.toLocaleString()}</td>
-                  </tr>
+                  <th key={i} style={{ textAlign: 'right', padding: '4px 8px', fontSize: 11, fontWeight: 500, color: isY ? '#b8860b' : 'var(--color-text-secondary)', background: isY ? '#FFF9E0' : 'var(--color-background-primary)', borderBottom: '1px solid var(--color-border-secondary)', whiteSpace: 'nowrap', minWidth: 100 }}>
+                    <div>{lbl.top}</div>
+                    <div style={{ fontWeight: 400, fontSize: 10, color: isY ? '#b8860b' : 'var(--color-text-secondary)' }}>{lbl.bottom}</div>
+                  </th>
                 )
               })}
-              {/* Total */}
-              {months.length > 1 && (() => {
-                const all = getSummary(filteredData)
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => {
+              if ('section' in row) {
                 return (
-                  <tr style={{ borderTop: '2px solid #e5e5e5', backgroundColor: '#FFF9E0' }}>
-                    <td className="py-2.5 px-3 font-bold" style={{ color: '#1A1A1A' }}>TOTAL</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#888' }}>{all.weeks}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#F5C800' }}>{fmt(all.storeRev)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#06C167' }}>{fmt(all.uberRev)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#FF3008' }}>{fmt(all.ddRev)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#1A1A1A' }}>{fmt(all.totalRev)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#888' }}>{fmt(all.totalCost)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#f97316' }}>{fmt(all.costFood)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#8b5cf6' }}>{fmt(all.costStaff)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#4a9eff' }}>{fmt(all.costOp)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: all.profit >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(all.profit)}</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: all.margin >= 20 ? '#16a34a' : '#d97706' }}>{all.margin.toFixed(1)}%</td>
-                    <td className="py-2.5 px-3 text-right font-bold" style={{ color: '#555' }}>{all.totalTx.toLocaleString()}</td>
+                  <tr key={ri}>
+                    <td colSpan={columns.length + 1} style={{ padding: '6px 12px', fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', background: 'var(--color-background-secondary)', textTransform: 'uppercase', letterSpacing: '0.4px', position: 'sticky', left: 0 }}>
+                      {row.section}
+                    </td>
                   </tr>
                 )
-              })()}
-            </tbody>
-          </table>
-        </div>
+              }
+              return (
+                <tr key={ri}>
+                  <td style={{ padding: '3px 12px', paddingLeft: row.indent ? 24 : 12, fontSize: 12, fontWeight: row.bold ? 600 : 400, color: 'var(--color-text-primary)', background: row.bold ? 'var(--color-background-secondary)' : 'var(--color-background-primary)', borderBottom: '0.5px solid var(--color-border-tertiary)', position: 'sticky', left: 0, zIndex: 1, whiteSpace: 'nowrap' }}>
+                    {row.label}
+                  </td>
+                  {columns.map((col, ci) => {
+                    const d = getColData(col)
+                    const isY = isYear(col)
+                    const val = (d as any)[row.key as string] as number
+                    const formatted = row.format(val)
+                    let color: string | undefined
+                    if (row.profit) color = val >= 0 ? '#16a34a' : '#dc2626'
+                    if (row.profitPct) color = getProfitColor(val)
+                    return (
+                      <td key={ci} style={{ textAlign: 'right', padding: '3px 8px', fontSize: 12, background: row.bold ? (isY ? '#FFFDE8' : 'var(--color-background-secondary)') : (isY ? '#FFFDE8' : 'transparent'), color: color || (isY ? '#b8860b' : 'var(--color-text-primary)'), fontWeight: row.bold || isY ? 600 : 400, borderBottom: '0.5px solid var(--color-border-tertiary)', whiteSpace: 'nowrap' }}>
+                        {formatted}
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )
