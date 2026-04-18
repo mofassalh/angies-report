@@ -22,9 +22,9 @@ const nav = [
       { label: 'Growth Trends', href: '/sales/growth' },
     ]
   },
-  { label: 'Reporting', icon: FileText, href: '/reporting',
+  { label: 'Reporting', icon: FileText, href: '/reporting/weekly',
     children: [
-      { label: 'Report', href: '/reporting' },
+      { label: 'Report', href: '/reporting/weekly' },
     ]
   },
 ]
