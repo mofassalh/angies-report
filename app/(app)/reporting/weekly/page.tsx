@@ -267,10 +267,10 @@ export default function ReportingPage() {
             {columns.map((c,i)=><col key={i} style={{width:c.isTotal?110:95}}/>)}
           </colgroup>
           <thead>
-            <tr style={{position:'sticky',top:0,zIndex:5}}>
+            <tr style={{position:'sticky',top:52,zIndex:5}}>
               <th style={{...lcBase,zIndex:6,background:STICKY_BG,borderBottom:'2px solid #d0d0d0',fontSize:11,fontWeight:500,color:'var(--color-text-secondary)',padding:'6px 12px'}}></th>
               {columns.map((col,i)=>(
-                <th key={i} style={{textAlign:'right',padding:'6px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:'2px solid #d0d0d0',position:'sticky',top:0,zIndex:4,background:col.isTotal?MONTH_BG:STICKY_BG,color:col.isTotal?MONTH_COLOR:'var(--color-text-secondary)',borderLeft:col.isTotal?`1px solid ${MONTH_BORDER}`:'none',borderRight:col.isTotal?`1px solid ${MONTH_BORDER}`:'none'}}>
+                <th key={i} style={{textAlign:'right',padding:'6px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:'2px solid #d0d0d0',position:'sticky',top:52,zIndex:4,background:col.isTotal?MONTH_BG:STICKY_BG,color:col.isTotal?MONTH_COLOR:'var(--color-text-secondary)',borderLeft:col.isTotal?`1px solid ${MONTH_BORDER}`:'none',borderRight:col.isTotal?`1px solid ${MONTH_BORDER}`:'none'}}>
                   <div>{col.label}</div>
                   <div style={{fontWeight:400,fontSize:10,color:col.isTotal?MONTH_COLOR:'var(--color-text-secondary)'}}>{col.sub}</div>
                 </th>
