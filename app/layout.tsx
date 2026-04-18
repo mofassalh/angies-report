@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Angie's Reports",
-  description: "Business intelligence and reporting dashboard",
+  description: "Business Intelligence Dashboard",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
