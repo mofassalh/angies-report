@@ -77,7 +77,7 @@ export default function RevenuePage() {
         ].map(({ label, value, sub }) => (
           <div key={label} style={{ background:'#fff', borderRadius:12, border:'0.5px solid #e5e5e5', padding:16 }}>
             <div style={{ fontSize:11, color:'#888', marginBottom:6 }}>{label}</div>
-            <div style={{ fontSize:22, fontWeight:700, color:'#1A1A1A' }}>{loading ? '—' : value}</div>
+            <div style={{ fontSize:22, fontWeight:700, color:'#F5C800' }}>{loading ? '—' : value}</div>
             <div style={{ fontSize:11, color:'#aaa', marginTop:4 }}>{sub}</div>
           </div>
         ))}
