@@ -571,47 +571,45 @@ function UploadTab() {
 // ── History Tab ───────────────────────────────────────────────────────────────
 interface WeekRow { week_start: string; total_gross: number; total_net: number; total_cost: number; rows: number; }
 
+interface HistoryRow {
+  id: string; restaurant_name: string; location: string; week_start: string;
+  partner: string; orders: number; gross_revenue: number; net_revenue: number;
+  food_cost: number; staff_cost: number; operation_cost: number;
+}
+
 function HistoryTab({ onEdit }: { onEdit: (ws: string) => void }) {
+  const [rows, setRows] = useState<HistoryRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
-  const [weeks, setWeeks] = useState<WeekRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<string|null>(null);
   const [toast, setToast] = useState<{ type: "ok"|"err"; msg: string }|null>(null);
+  const PAGE_SIZE = 20;
 
   useEffect(() => { load(); }, []);
-
-  const filtered = weeks.filter(w => !search || wLabel(w.week_start).toLowerCase().includes(search.toLowerCase()));
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
 
   async function load() {
     setLoading(true);
     const { data } = await supabase.from("report_weekly_data")
-      .select("week_start,gross_revenue,net_revenue,food_cost,staff_cost,operation_cost")
+      .select("id,restaurant_name,location,week_start,partner,orders,gross_revenue,net_revenue,food_cost,staff_cost,operation_cost")
       .order("week_start", { ascending: false });
-    if (!data) { setLoading(false); return; }
-    const map: Record<string, WeekRow> = {};
-    for (const r of data) {
-      const ws = r.week_start;
-      if (!map[ws]) map[ws] = { week_start: ws, total_gross: 0, total_net: 0, total_cost: 0, rows: 0 };
-      map[ws].total_gross += r.gross_revenue || 0;
-      map[ws].total_net   += r.net_revenue || 0;
-      map[ws].total_cost  += (r.food_cost||0) + (r.staff_cost||0) + (r.operation_cost||0);
-      map[ws].rows++;
-    }
-    setWeeks(Object.values(map).sort((a,b) => b.week_start.localeCompare(a.week_start)));
+    setRows(data || []);
     setLoading(false);
   }
 
-  async function del(ws: string) {
-    if (!confirm(`Delete week of ${wLabel(ws)}?`)) return;
-    setDeleting(ws);
-    const { error } = await supabase.from("report_weekly_data").delete().eq("week_start", ws);
-    setDeleting(null);
-    if (error) setToast({ type: "err", msg: error.message });
-    else { setToast({ type: "ok", msg: "Deleted!" }); load(); setTimeout(() => setToast(null), 3000); }
+  const filtered = rows.filter(r =>
+    !search ||
+    r.restaurant_name.toLowerCase().includes(search.toLowerCase()) ||
+    r.location.toLowerCase().includes(search.toLowerCase()) ||
+    r.partner.toLowerCase().includes(search.toLowerCase()) ||
+    wLabel(r.week_start).toLowerCase().includes(search.toLowerCase())
+  );
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+
+  async function del(id: string) {
+    if (!confirm("Delete this row?")) return;
+    await supabase.from("report_weekly_data").delete().eq("id", id);
+    load();
   }
 
   if (loading) return <div className="text-center py-20 text-gray-400 text-sm">Loading...</div>;
@@ -619,58 +617,69 @@ function HistoryTab({ onEdit }: { onEdit: (ws: string) => void }) {
   return (
     <div className="space-y-4">
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50">
-          <p className="text-sm font-semibold text-gray-700">{weeks.length} weeks saved</p>
-          <input type="text" placeholder="Search week..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-[#F5C800] focus:outline-none" />
+        <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+          <p className="text-sm font-semibold text-gray-700 flex-shrink-0">{rows.length} records</p>
+          <input type="text" placeholder="Search restaurant, location, partner, week..."
+            value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-[#F5C800] focus:outline-none" />
         </div>
-        {weeks.length === 0 && <div className="text-center py-16 text-gray-400 text-sm">কোনো data নেই।</div>}
-        <table className="w-full text-sm">
-          <thead className="text-xs text-gray-400 border-b border-gray-100">
-            <tr>
-              <th className="text-left px-5 py-3 font-medium">Week</th>
-              <th className="text-right px-4 py-3 font-medium">Rows</th>
-              <th className="text-right px-4 py-3 font-medium">Gross</th>
-              <th className="text-right px-4 py-3 font-medium">Net</th>
-              <th className="text-right px-4 py-3 font-medium">Cost</th>
-              <th className="text-right px-4 py-3 font-medium">Profit</th>
-              <th className="px-5 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map(w => {
-              const profit = w.total_net - w.total_cost;
-              return (
-                <tr key={w.week_start} className="border-t border-gray-50 hover:bg-gray-50">
-                  <td className="px-5 py-3.5 font-medium text-gray-800">{wLabel(w.week_start)}</td>
-                  <td className="px-4 py-3.5 text-right text-gray-400">{w.rows}</td>
-                  <td className="px-4 py-3.5 text-right text-gray-700">{fm(w.total_gross)}</td>
-                  <td className="px-4 py-3.5 text-right text-gray-700">{fm(w.total_net)}</td>
-                  <td className="px-4 py-3.5 text-right text-red-500">{fm(w.total_cost)}</td>
-                  <td className={`px-4 py-3.5 text-right font-semibold ${profit>=0?"text-green-600":"text-red-500"}`}>{fm(profit)}</td>
-                  <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button onClick={() => onEdit(w.week_start)} className="text-xs text-[#F5C800] font-medium hover:underline">Edit</button>
-                      <button onClick={() => del(w.week_start)} disabled={deleting===w.week_start} className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50">
-                        {deleting===w.week_start ? "..." : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-400">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length}</p>
-          <div className="flex gap-1">
-            <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">← Prev</button>
-            {Array.from({length: Math.min(totalPages,7)}, (_,i) => i+1).map(p => (<button key={p} onClick={() => setPage(p)} className={`px-3 py-1.5 text-xs border rounded-lg ${page===p?"bg-[#F5C800] border-[#F5C800] font-bold":"border-gray-200 hover:bg-gray-50"}`}>{p}</button>))}
-            <button onClick={() => setPage(p => Math.min(totalPages,p+1))} disabled={page===totalPages} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">Next →</button>
+        {rows.length === 0 && <div className="text-center py-16 text-gray-400 text-sm">কোনো data নেই।</div>}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">Week</th>
+                <th className="text-left px-4 py-3 font-medium">Restaurant</th>
+                <th className="text-left px-4 py-3 font-medium">Location</th>
+                <th className="text-left px-4 py-3 font-medium">Partner</th>
+                <th className="text-right px-4 py-3 font-medium">Orders</th>
+                <th className="text-right px-4 py-3 font-medium">Gross</th>
+                <th className="text-right px-4 py-3 font-medium">Net</th>
+                <th className="text-right px-4 py-3 font-medium">Cost</th>
+                <th className="text-right px-4 py-3 font-medium">Profit</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.map(r => {
+                const cost = (r.food_cost||0)+(r.staff_cost||0)+(r.operation_cost||0);
+                const profit = r.net_revenue - cost;
+                return (
+                  <tr key={r.id} className="border-t border-gray-50 hover:bg-gray-50">
+                    <td className="px-4 py-2.5 text-gray-700 font-medium whitespace-nowrap">{wLabel(r.week_start)}</td>
+                    <td className="px-4 py-2.5 text-gray-700">{r.restaurant_name}</td>
+                    <td className="px-4 py-2.5 text-gray-500 text-xs">{r.location}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{r.partner}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">{r.orders}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">{fm(r.gross_revenue)}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">{fm(r.net_revenue)}</td>
+                    <td className="px-4 py-2.5 text-right text-red-500">{fm(cost)}</td>
+                    <td className={`px-4 py-2.5 text-right font-semibold ${profit>=0?"text-green-600":"text-red-500"}`}>{fm(profit)}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <button onClick={() => onEdit(r.week_start)} className="text-xs text-[#F5C800] font-medium hover:underline">Edit</button>
+                        <button onClick={() => del(r.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {totalPages > 1 && (
+          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+            <p className="text-xs text-gray-400">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length}</p>
+            <div className="flex gap-1">
+              <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">← Prev</button>
+              {Array.from({length: Math.min(totalPages,7)}, (_,i) => i+1).map(p => (
+                <button key={p} onClick={() => setPage(p)} className={`px-3 py-1.5 text-xs border rounded-lg ${page===p?"bg-[#F5C800] border-[#F5C800] font-bold":"border-gray-200 hover:bg-gray-50"}`}>{p}</button>
+              ))}
+              <button onClick={() => setPage(p => Math.min(totalPages,p+1))} disabled={page===totalPages} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">Next →</button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       <Toast toast={toast} />
     </div>
   );
