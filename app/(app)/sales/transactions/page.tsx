@@ -1,117 +1,158 @@
 'use client'
 import { useFilters } from '@/components/FilterContext'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+
+const COLORS = { store:'#F5C800', uber:'#06C167', doordash:'#FF3008' }
 
 export default function TransactionsPage() {
   const { filteredData, loading } = useFilters()
 
-  const fmt = (n: number) => `$${n.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-  const fmtK = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : fmt(n)
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString('en-AU')}`
+  const fmtK = (n: number) => n >= 1000 ? `${(n/1000).toFixed(1)}k` : n.toLocaleString('en-AU')
 
-  const storeTx = filteredData.reduce((s, d) => s + (parseInt(d.transactions_store) || 0), 0)
-  const uberTx = filteredData.reduce((s, d) => s + (parseInt(d.transactions_uber) || 0), 0)
-  const ddTx = filteredData.reduce((s, d) => s + (parseInt(d.transactions_doordash) || 0), 0)
+  const storeTx = filteredData.reduce((s,d)=>s+(parseInt(d.transactions_store)||0),0)
+  const uberTx = filteredData.reduce((s,d)=>s+(parseInt(d.transactions_uber)||0),0)
+  const ddTx = filteredData.reduce((s,d)=>s+(parseInt(d.transactions_doordash)||0),0)
   const totalTx = storeTx + uberTx + ddTx
-  const storeRev = filteredData.reduce((s, d) => s + (parseFloat(d.revenue_store_net) || 0), 0)
-  const uberRev = filteredData.reduce((s, d) => s + (parseFloat(d.revenue_uber_gross) || 0), 0)
-  const ddRev = filteredData.reduce((s, d) => s + (parseFloat(d.revenue_doordash_gross) || 0), 0)
-  const totalRev = storeRev + uberRev + ddRev
+  const storeRev = filteredData.reduce((s,d)=>s+(parseFloat(d.revenue_store_net)||0),0)
+  const uberRev = filteredData.reduce((s,d)=>s+(parseFloat(d.revenue_uber_gross)||0),0)
+  const ddRev = filteredData.reduce((s,d)=>s+(parseFloat(d.revenue_doordash_gross)||0),0)
 
-  const byWeek: Record<string, any> = {}
+  const pieData = [
+    { name:'Physical Store', value:storeTx, color:COLORS.store },
+    { name:'Uber Eats', value:uberTx, color:COLORS.uber },
+    { name:'DoorDash', value:ddTx, color:COLORS.doordash },
+  ]
+
+  const byWeek: Record<string,any> = {}
   filteredData.forEach(d => {
     const w = d.week_start
-    if (!byWeek[w]) byWeek[w] = { store: 0, uber: 0, dd: 0, total: 0, rev: 0 }
-    byWeek[w].store += parseInt(d.transactions_store) || 0
-    byWeek[w].uber += parseInt(d.transactions_uber) || 0
-    byWeek[w].dd += parseInt(d.transactions_doordash) || 0
-    byWeek[w].total += (parseInt(d.transactions_store) || 0) + (parseInt(d.transactions_uber) || 0) + (parseInt(d.transactions_doordash) || 0)
-    byWeek[w].rev += (parseFloat(d.revenue_store_net) || 0) + (parseFloat(d.revenue_uber_gross) || 0) + (parseFloat(d.revenue_doordash_gross) || 0)
+    if (!byWeek[w]) byWeek[w] = { week:w, store:0, uber:0, doordash:0 }
+    byWeek[w].store += parseInt(d.transactions_store)||0
+    byWeek[w].uber += parseInt(d.transactions_uber)||0
+    byWeek[w].doordash += parseInt(d.transactions_doordash)||0
   })
-  const weeks = Object.entries(byWeek).sort((a, b) => a[0].localeCompare(b[0]))
-  const maxTx = Math.max(...weeks.map(w => w[1].total), 1)
+  const weeklyData = Object.values(byWeek).sort((a,b)=>a.week.localeCompare(b.week)).map((d,i)=>({
+    label:`W${i+1}`,
+    store:d.store, uber:d.uber, doordash:d.doordash,
+    total:d.store+d.uber+d.doordash,
+  }))
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    return (
+      <div style={{ background:'#fff', border:'0.5px solid #e0e0e0', borderRadius:8, padding:'8px 12px', fontSize:12 }}>
+        <div style={{ fontWeight:600, marginBottom:4 }}>{label}</div>
+        {payload.map((p: any) => <div key={p.name} style={{ color:p.color||p.fill }}>{p.name}: {p.value.toLocaleString()}</div>)}
+      </div>
+    )
+  }
+
+  const card = (children: React.ReactNode) => (
+    <div style={{ background:'#fff', borderRadius:12, border:'0.5px solid #e5e5e5', padding:20 }}>{children}</div>
+  )
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-6" style={{ color: '#1A1A1A' }}>Transaction Analysis</h2>
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <h2 style={{ fontSize:18, fontWeight:600, color:'#1A1A1A' }}>Transaction Analysis</h2>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* KPI Cards */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
         {[
-          { label: 'Total Transactions', value: totalTx.toLocaleString(), sub: 'All channels' },
-          { label: 'Store Orders', value: storeTx.toLocaleString(), sub: `Avg ${fmt(storeTx > 0 ? storeRev/storeTx : 0)}/order` },
-          { label: 'Uber Orders', value: uberTx.toLocaleString(), sub: `Avg ${fmt(uberTx > 0 ? uberRev/uberTx : 0)}/order` },
-          { label: 'DoorDash Orders', value: ddTx.toLocaleString(), sub: `Avg ${fmt(ddTx > 0 ? ddRev/ddTx : 0)}/order` },
-        ].map(({ label, value, sub }) => (
-          <div key={label} className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
-            <div className="text-xs font-medium mb-2" style={{ color: '#888' }}>{label}</div>
-            <div className="text-2xl font-bold mb-1" style={{ color: '#1A1A1A' }}>{loading ? '—' : value}</div>
-            <div className="text-xs" style={{ color: '#aaa' }}>{sub}</div>
+          { label:'Total Orders', value:totalTx.toLocaleString(), sub:`Avg ${fmt(totalTx>0?(storeRev+uberRev+ddRev)/totalTx:0)}/order`, color:'#1A1A1A' },
+          { label:'Store Orders', value:storeTx.toLocaleString(), sub:`Avg ${fmt(storeTx>0?storeRev/storeTx:0)}/order`, color:COLORS.store },
+          { label:'Uber Orders', value:uberTx.toLocaleString(), sub:`Avg ${fmt(uberTx>0?uberRev/uberTx:0)}/order`, color:COLORS.uber },
+          { label:'DoorDash Orders', value:ddTx.toLocaleString(), sub:`Avg ${fmt(ddTx>0?ddRev/ddTx:0)}/order`, color:COLORS.doordash },
+        ].map(({ label, value, sub, color }) => (
+          <div key={label} style={{ background:'#fff', borderRadius:12, border:'0.5px solid #e5e5e5', padding:16 }}>
+            <div style={{ fontSize:11, color:'#888', marginBottom:6 }}>{label}</div>
+            <div style={{ fontSize:22, fontWeight:700, color }}>{loading?'—':value}</div>
+            <div style={{ fontSize:11, color:'#aaa', marginTop:4 }}>{sub}</div>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl p-5 bg-white mb-6" style={{ border: '1px solid #e5e5e5' }}>
-        <h3 className="font-semibold mb-4" style={{ color: '#1A1A1A' }}>Transaction Share by Channel</h3>
-        <div className="space-y-3">
-          {[
-            { label: 'Physical Store', tx: storeTx, color: '#F5C800' },
-            { label: 'Uber Eats', tx: uberTx, color: '#06C167' },
-            { label: 'DoorDash', tx: ddTx, color: '#FF3008' },
-          ].map(({ label, tx, color }) => {
-            const pct = totalTx > 0 ? (tx / totalTx * 100) : 0
-            return (
-              <div key={label}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span style={{ color: '#555' }}>{label}</span>
-                  <span className="font-semibold" style={{ color: '#1A1A1A' }}>{tx.toLocaleString()} <span className="text-xs font-normal" style={{ color: '#aaa' }}>({pct.toFixed(1)}%)</span></span>
-                </div>
-                <div className="h-3 rounded-full" style={{ backgroundColor: '#f0f0f0' }}>
-                  <div className="h-3 rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
-                </div>
+      {/* Pie + details */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+        {card(
+          <>
+            <h3 style={{ fontSize:14, fontWeight:600, color:'#1A1A1A', marginBottom:16 }}>Transaction Share</h3>
+            <div style={{ display:'flex', alignItems:'center', gap:24 }}>
+              <ResponsiveContainer width={180} height={180}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+                    {pieData.map((entry,i) => <Cell key={i} fill={entry.color}/>)}
+                  </Pie>
+                  <Tooltip formatter={(v:any)=>v.toLocaleString()}/>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
+                {pieData.map(({ name, value, color }) => {
+                  const pct = totalTx>0?(value/totalTx*100).toFixed(1):'0'
+                  return (
+                    <div key={name}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <div style={{ width:10, height:10, borderRadius:'50%', background:color }}/>
+                          <span style={{ fontSize:12, color:'#555' }}>{name}</span>
+                        </div>
+                        <span style={{ fontSize:12, fontWeight:600 }}>{pct}%</span>
+                      </div>
+                      <div style={{ height:4, borderRadius:4, background:'#f0f0f0' }}>
+                        <div style={{ height:4, borderRadius:4, width:`${pct}%`, background:color }}/>
+                      </div>
+                      <div style={{ fontSize:11, color:'#aaa', marginTop:2 }}>{value.toLocaleString()} orders</div>
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
+            </div>
+          </>
+        )}
+
+        {card(
+          <>
+            <h3 style={{ fontSize:14, fontWeight:600, color:'#1A1A1A', marginBottom:16 }}>Orders by Channel</h3>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {[
+                { name:'Physical Store', tx:storeTx, rev:storeRev, color:COLORS.store },
+                { name:'Uber Eats', tx:uberTx, rev:uberRev, color:COLORS.uber },
+                { name:'DoorDash', tx:ddTx, rev:ddRev, color:COLORS.doordash },
+              ].map(({ name, tx, rev, color }) => (
+                <div key={name} style={{ padding:12, borderRadius:10, background:'#f9f9f9', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:10, height:10, borderRadius:'50%', background:color }}/>
+                    <span style={{ fontSize:13, fontWeight:500 }}>{name}</span>
+                  </div>
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ fontSize:14, fontWeight:700, color }}>{tx.toLocaleString()}</div>
+                    <div style={{ fontSize:11, color:'#aaa' }}>{fmt(tx>0?rev/tx:0)}/order</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
-        <h3 className="font-semibold mb-4" style={{ color: '#1A1A1A' }}>Weekly Transaction Breakdown</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
-                <th className="text-left py-2 font-medium" style={{ color: '#888' }}>Week</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#F5C800' }}>Store</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#06C167' }}>Uber</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#FF3008' }}>DoorDash</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#888' }}>Total</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#888' }}>Avg/Order</th>
-                <th className="py-2 pl-4 w-32" style={{ color: '#888' }}>Bar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {weeks.map(([week, d]) => {
-                const avgOrder = d.total > 0 ? d.rev / d.total : 0
-                return (
-                  <tr key={week} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                    <td className="py-2 font-medium" style={{ color: '#555' }}>
-                      {new Date(week).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
-                    </td>
-                    <td className="py-2 text-right" style={{ color: '#555' }}>{d.store}</td>
-                    <td className="py-2 text-right" style={{ color: '#555' }}>{d.uber}</td>
-                    <td className="py-2 text-right" style={{ color: '#555' }}>{d.dd}</td>
-                    <td className="py-2 text-right font-semibold" style={{ color: '#1A1A1A' }}>{d.total}</td>
-                    <td className="py-2 text-right" style={{ color: '#555' }}>{fmt(avgOrder)}</td>
-                    <td className="py-2 pl-4">
-                      <div className="h-3 rounded-full" style={{ backgroundColor: '#f0f0f0' }}>
-                        <div className="h-3 rounded-full" style={{ width: `${d.total/maxTx*100}%`, backgroundColor: '#4a9eff' }} />
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Weekly Bar Chart */}
+      {card(
+        <>
+          <h3 style={{ fontSize:14, fontWeight:600, color:'#1A1A1A', marginBottom:16 }}>Weekly Transaction Breakdown</h3>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={weeklyData} margin={{ top:0, right:16, left:0, bottom:0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false}/>
+              <XAxis dataKey="label" tick={{ fontSize:11, fill:'#888' }} axisLine={false} tickLine={false}/>
+              <YAxis tickFormatter={fmtK} tick={{ fontSize:11, fill:'#888' }} axisLine={false} tickLine={false} width={45}/>
+              <Tooltip content={<CustomTooltip/>}/>
+              <Legend wrapperStyle={{ fontSize:12 }}/>
+              <Bar dataKey="store" name="Store" stackId="a" fill={COLORS.store}/>
+              <Bar dataKey="uber" name="Uber Eats" stackId="a" fill={COLORS.uber}/>
+              <Bar dataKey="doordash" name="DoorDash" stackId="a" fill={COLORS.doordash} radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </>
+      )}
     </div>
   )
 }
