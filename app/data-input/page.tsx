@@ -481,7 +481,8 @@ function UploadTab() {
   const PAGE_SIZE = 20;
   const inputRef = useRef<HTMLInputElement>(null);
 
-    r.partner.toLowerCase().includes(search.toLowerCase()) ||
+  const filtered = preview.filter((r) =>
+    !search || r.restaurant_name.toLowerCase().includes(search.toLowerCase()) ||    r.partner.toLowerCase().includes(search.toLowerCase()) ||
     r.week_start.includes(search)
   );
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
