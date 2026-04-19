@@ -475,7 +475,24 @@ function UploadTab() {
   const [skipped, setSkipped] = useState<string[]>([]);
   const [fileName, setFileName] = useState("");
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [imported, setImported] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function showToast(type: "ok" | "err", msg: string) {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 5000);
+  }
+
+  const filtered = preview.filter((r) =>
+    !search || r.restaurant_name.toLowerCase().includes(search.toLowerCase()) ||
+    r.partner.toLowerCase().includes(search.toLowerCase()) ||
+    r.week_start.includes(search)
+  );
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function showToast(type: "ok" | "err", msg: string) {
     setToast({ type, msg });
@@ -598,6 +615,7 @@ function UploadTab() {
     if (error) showToast("err", error.message);
     else {
       showToast("ok", `${preview.length} rows imported!`);
+      setImported(true);
       setPreview([]);
       setFileName("");
     }
@@ -672,13 +690,38 @@ function UploadTab() {
         </div>
       )}
 
+      {/* Imported success */}
+      {imported && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-green-800">✅ Import successful!</p>
+            <p className="text-sm text-green-600 mt-0.5">Data Supabase এ save হয়েছে।</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setImported(false)}
+              className="px-4 py-2 border border-green-300 text-green-700 text-sm rounded-lg hover:bg-green-100">
+              Upload More
+            </button>
+            <a href="/report"
+              className="px-4 py-2 bg-[#F5C800] text-black font-bold text-sm rounded-lg hover:bg-yellow-300">
+              Go to Report →
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Preview */}
       {preview.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-700">{preview.length} rows ready to import</p>
+          <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-gray-700 flex-shrink-0">{preview.length} rows ready</p>
+            <input
+              type="text" placeholder="Search restaurant, partner, date..."
+              value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-[#F5C800] focus:outline-none"
+            />
             <button onClick={handleImport} disabled={uploading}
-              className="px-5 py-2 bg-[#F5C800] text-black font-bold rounded-lg text-sm hover:bg-yellow-300 disabled:opacity-50 transition-colors">
+              className="px-5 py-2 bg-[#F5C800] text-black font-bold rounded-lg text-sm hover:bg-yellow-300 disabled:opacity-50 flex-shrink-0">
               {uploading ? "Importing..." : "Import Now"}
             </button>
           </div>
@@ -698,7 +741,7 @@ function UploadTab() {
                 </tr>
               </thead>
               <tbody>
-                {preview.slice(0, 20).map((r, i) => (
+                {paginated.map((r, i) => (
                   <tr key={i} className="border-t border-gray-50 hover:bg-gray-50">
                     <td className="px-4 py-2 text-gray-700">{r.restaurant_name}</td>
                     <td className="px-4 py-2 text-gray-500">{weekLabel(r.week_start)}</td>
@@ -713,10 +756,30 @@ function UploadTab() {
                 ))}
               </tbody>
             </table>
-            {preview.length > 20 && (
-              <p className="text-xs text-gray-400 px-4 py-2 border-t border-gray-100">...and {preview.length - 20} more rows</p>
-            )}
           </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+              <p className="text-xs text-gray-400">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+              </p>
+              <div className="flex gap-1">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                  className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">← Prev</button>
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  const p = i + 1;
+                  return (
+                    <button key={p} onClick={() => setPage(p)}
+                      className={`px-3 py-1.5 text-xs border rounded-lg ${page === p ? "bg-[#F5C800] border-[#F5C800] font-bold" : "border-gray-200 hover:bg-gray-50"}`}>
+                      {p}
+                    </button>
+                  );
+                })}
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                  className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">Next →</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
