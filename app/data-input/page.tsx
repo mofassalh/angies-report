@@ -481,26 +481,12 @@ function UploadTab() {
   const PAGE_SIZE = 20;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function showToast(type: "ok" | "err", msg: string) {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 5000);
-  }
-
-  const filtered = preview.filter((r) =>
-    !search || r.restaurant_name.toLowerCase().includes(search.toLowerCase()) ||
     r.partner.toLowerCase().includes(search.toLowerCase()) ||
     r.week_start.includes(search)
   );
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  function showToast(type: "ok" | "err", msg: string) {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 5000);
-  }
-
-  // Parse a CSV line properly handling quoted fields with commas inside
-  function parseCSVLine(line: string): string[] {
     const result: string[] = [];
     let current = "";
     let inQuotes = false;
