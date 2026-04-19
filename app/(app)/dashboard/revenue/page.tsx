@@ -74,7 +74,7 @@ export default function RevenuePage() {
           { label:'Physical Store', value:fmt(storeRev), sub:`${storeTx.toLocaleString()} orders`, color:'#F5C800' },
           { label:'Uber Eats', value:fmt(uberRev), sub:`${uberTx.toLocaleString()} orders`, color:'#06C167' },
           { label:'DoorDash', value:fmt(ddRev), sub:`${ddTx.toLocaleString()} orders`, color:'#FF3008' },
-        ].map(({ label, value, sub, color }) => (
+        ].map(({ label, value, sub, color: cardColor }) => (
           <div key={label} style={{ background:'#fff', borderRadius:12, border:'0.5px solid #e5e5e5', padding:16 }}>
             <div style={{ fontSize:11, color:'#888', marginBottom:6 }}>{label}</div>
             <div style={{ fontSize:22, fontWeight:700, color:'#1A1A1A' }}>{loading ? '—' : value}</div>
