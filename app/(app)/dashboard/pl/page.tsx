@@ -1,171 +1,134 @@
 'use client'
 import { useFilters } from '@/components/FilterContext'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, ReferenceLine } from 'recharts'
 
 export default function PLPage() {
   const { filteredData, loading } = useFilters()
 
   const sum = (key: string) => filteredData.reduce((s, d) => s + (parseFloat(d[key]) || 0), 0)
-  const fmt = (n: number) => `$${n.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-  const fmtK = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : fmt(n)
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString('en-AU')}`
+  const fmtK = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : n <= -1000 ? `-$${(Math.abs(n)/1000).toFixed(1)}k` : fmt(n)
 
-  const storeRev = sum('revenue_store_net')
-  const uberRev = sum('revenue_uber_gross')
-  const ddRev = sum('revenue_doordash_gross')
-  const grossRev = storeRev + uberRev + ddRev
-  const costFood = sum('cost_food')
-  const costStaff = sum('cost_staff')
-  const costOp = sum('cost_operation')
-  const totalCost = costFood + costStaff + costOp
+  const grossRev = sum('revenue_store_net') + sum('revenue_uber_gross') + sum('revenue_doordash_gross')
+  const netRev = sum('revenue_store_net') + sum('revenue_uber_net') + sum('revenue_doordash_net')
+  const totalCost = sum('cost_food') + sum('cost_staff') + sum('cost_operation')
   const grossProfit = grossRev - totalCost
-  const profitPct = grossRev > 0 ? (grossProfit / grossRev * 100) : 0
-  const totalTx = sum('transactions_store') + sum('transactions_uber') + sum('transactions_doordash')
+  const netProfit = netRev - totalCost
+  const profitPct = grossRev > 0 ? (netProfit/grossRev*100) : 0
+  const totalTx = filteredData.reduce((s,d)=>s+(parseInt(d.transactions_store)||0)+(parseInt(d.transactions_uber)||0)+(parseInt(d.transactions_doordash)||0),0)
 
   const byWeek: Record<string, any> = {}
   filteredData.forEach(d => {
     const w = d.week_start
-    if (!byWeek[w]) byWeek[w] = { rev: 0, cost: 0, profit: 0 }
-    const rev = (parseFloat(d.revenue_store_net) || 0) + (parseFloat(d.revenue_uber_gross) || 0) + (parseFloat(d.revenue_doordash_gross) || 0)
-    const cost = (parseFloat(d.cost_food) || 0) + (parseFloat(d.cost_staff) || 0) + (parseFloat(d.cost_operation) || 0)
-    byWeek[w].rev += rev
-    byWeek[w].cost += cost
-    byWeek[w].profit += rev - cost
+    if (!byWeek[w]) byWeek[w] = { week:w, rev:0, cost:0 }
+    byWeek[w].rev += (parseFloat(d.revenue_store_net)||0)+(parseFloat(d.revenue_uber_gross)||0)+(parseFloat(d.revenue_doordash_gross)||0)
+    byWeek[w].cost += (parseFloat(d.cost_food)||0)+(parseFloat(d.cost_staff)||0)+(parseFloat(d.cost_operation)||0)
   })
-  const weeks = Object.entries(byWeek).sort((a, b) => a[0].localeCompare(b[0]))
-  const maxRev = Math.max(...weeks.map(w => w[1].rev), 1)
+  const weeklyData = Object.values(byWeek).sort((a,b)=>a.week.localeCompare(b.week)).map((d,i)=>({
+    label: `W${i+1}`,
+    profit: Math.round(d.rev - d.cost),
+    revenue: Math.round(d.rev),
+    cost: Math.round(d.cost),
+    margin: d.rev > 0 ? parseFloat((((d.rev-d.cost)/d.rev)*100).toFixed(1)) : 0,
+  }))
 
-  const profitWeeks = weeks.filter(w => w[1].profit >= 0).length
-  const lossWeeks = weeks.filter(w => w[1].profit < 0).length
-  const bestWeek = [...weeks].sort((a, b) => b[1].profit - a[1].profit)[0]
-  const worstWeek = [...weeks].sort((a, b) => a[1].profit - b[1].profit)[0]
+  const overallData = [
+    { name:'Gross Revenue', value: Math.round(grossRev), color:'#22c55e' },
+    { name:'Net Revenue', value: Math.round(netRev), color:'#4a9eff' },
+    { name:'Total Cost', value: Math.round(totalCost), color:'#ef4444' },
+    { name:'Gross Profit', value: Math.round(grossProfit), color:'#F5C800' },
+    { name:'Net Profit', value: Math.round(netProfit), color: netProfit >= 0 ? '#16a34a' : '#dc2626' },
+  ]
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    return (
+      <div style={{ background:'#fff', border:'0.5px solid #e0e0e0', borderRadius:8, padding:'8px 12px', fontSize:12 }}>
+        <div style={{ fontWeight:600, marginBottom:4, color:'#1A1A1A' }}>{label}</div>
+        {payload.map((p: any) => <div key={p.name} style={{ color:p.color||p.fill }}>{p.name}: {fmtK(p.value)}</div>)}
+      </div>
+    )
+  }
+
+  const card = (children: React.ReactNode) => (
+    <div style={{ background:'#fff', borderRadius:12, border:'0.5px solid #e5e5e5', padding:20 }}>{children}</div>
+  )
+
+  const pc = (v: number) => v >= 20 ? '#16a34a' : v >= 10 ? '#d97706' : '#dc2626'
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-6" style={{ color: '#1A1A1A' }}>P&L Summary</h2>
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <h2 style={{ fontSize:18, fontWeight:600, color:'#1A1A1A' }}>P&L Summary</h2>
 
-      {/* P&L Statement */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
-          <h3 className="font-semibold mb-4" style={{ color: '#1A1A1A' }}>Profit & Loss Statement</h3>
-          <div className="space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#aaa' }}>Revenue</div>
-            {[
-              { label: 'Physical Store', value: storeRev, indent: true },
-              { label: 'Uber Eats', value: uberRev, indent: true },
-              { label: 'DoorDash', value: ddRev, indent: true },
-              { label: 'Gross Revenue', value: grossRev, bold: true },
-            ].map(({ label, value, indent, bold }) => (
-              <div key={label} className={`flex justify-between py-1.5 ${indent ? 'pl-4' : ''}`}
-                style={{ borderBottom: bold ? '2px solid #e5e5e5' : '1px solid #f5f5f5' }}>
-                <span className={`text-sm ${bold ? 'font-bold' : ''}`} style={{ color: bold ? '#1A1A1A' : '#555' }}>{label}</span>
-                <span className={`text-sm ${bold ? 'font-bold' : ''}`} style={{ color: bold ? '#1A1A1A' : '#555' }}>{fmt(value)}</span>
-              </div>
-            ))}
-
-            <div className="text-xs font-semibold uppercase tracking-wide mt-3 mb-2" style={{ color: '#aaa' }}>Costs</div>
-            {[
-              { label: 'Food Cost', value: costFood, indent: true },
-              { label: 'Staff Cost', value: costStaff, indent: true },
-              { label: 'Operations', value: costOp, indent: true },
-              { label: 'Total Cost', value: totalCost, bold: true },
-            ].map(({ label, value, indent, bold }) => (
-              <div key={label} className={`flex justify-between py-1.5 ${indent ? 'pl-4' : ''}`}
-                style={{ borderBottom: bold ? '2px solid #e5e5e5' : '1px solid #f5f5f5' }}>
-                <span className={`text-sm ${bold ? 'font-bold' : ''}`} style={{ color: bold ? '#1A1A1A' : '#555' }}>{label}</span>
-                <span className={`text-sm ${bold ? 'font-bold' : ''}`} style={{ color: bold ? '#ef4444' : '#555' }}>({fmt(value)})</span>
-              </div>
-            ))}
-
-            <div className="flex justify-between py-3 px-3 rounded-xl mt-2"
-              style={{ backgroundColor: grossProfit >= 0 ? '#f0fdf4' : '#fff0f0' }}>
-              <span className="font-bold" style={{ color: '#1A1A1A' }}>Net Profit</span>
-              <div className="text-right">
-                <div className="font-bold" style={{ color: grossProfit >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(grossProfit)}</div>
-                <div className="text-xs" style={{ color: '#aaa' }}>{profitPct.toFixed(1)}% margin</div>
-              </div>
-            </div>
+      {/* KPI Cards */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+        {[
+          { label:'Gross Revenue', value:fmt(grossRev), color:'#1A1A1A' },
+          { label:'Net Profit', value:fmt(netProfit), color: netProfit>=0?'#16a34a':'#dc2626' },
+          { label:'Profit Margin', value:`${profitPct.toFixed(1)}%`, color:pc(profitPct) },
+          { label:'Avg/Order', value:fmt(totalTx>0?grossRev/totalTx:0), color:'#1A1A1A' },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{ background:'#fff', borderRadius:12, border:'0.5px solid #e5e5e5', padding:16 }}>
+            <div style={{ fontSize:11, color:'#888', marginBottom:6 }}>{label}</div>
+            <div style={{ fontSize:22, fontWeight:700, color }}>{loading ? '—' : value}</div>
           </div>
-        </div>
-
-        {/* KPI boxes */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: 'Profitable Weeks', value: profitWeeks, color: '#16a34a', bg: '#f0fdf4' },
-              { label: 'Loss Weeks', value: lossWeeks, color: '#dc2626', bg: '#fff0f0' },
-              { label: 'Avg Weekly Profit', value: fmtK(weeks.length > 0 ? grossProfit / weeks.length : 0), color: '#1A1A1A', bg: '#f9f9f9' },
-              { label: 'Profit per Order', value: fmt(totalTx > 0 ? grossProfit / totalTx : 0), color: '#1A1A1A', bg: '#f9f9f9' },
-            ].map(({ label, value, color, bg }) => (
-              <div key={label} className="rounded-2xl p-4" style={{ backgroundColor: bg, border: '1px solid #e5e5e5' }}>
-                <div className="text-xs mb-1" style={{ color: '#888' }}>{label}</div>
-                <div className="text-2xl font-bold" style={{ color }}>{value}</div>
-              </div>
-            ))}
-          </div>
-
-          {bestWeek && (
-            <div className="rounded-2xl p-4 bg-white" style={{ border: '1px solid #e5e5e5' }}>
-              <div className="text-xs mb-2 font-semibold" style={{ color: '#888' }}>BEST WEEK</div>
-              <div className="flex justify-between">
-                <span style={{ color: '#555' }}>{new Date(bestWeek[0]).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })}</span>
-                <span className="font-bold" style={{ color: '#16a34a' }}>{fmt(bestWeek[1].profit)}</span>
-              </div>
-            </div>
-          )}
-          {worstWeek && (
-            <div className="rounded-2xl p-4 bg-white" style={{ border: '1px solid #e5e5e5' }}>
-              <div className="text-xs mb-2 font-semibold" style={{ color: '#888' }}>WORST WEEK</div>
-              <div className="flex justify-between">
-                <span style={{ color: '#555' }}>{new Date(worstWeek[0]).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })}</span>
-                <span className="font-bold" style={{ color: '#dc2626' }}>{fmt(worstWeek[1].profit)}</span>
-              </div>
-            </div>
-          )}
-        </div>
+        ))}
       </div>
 
-      {/* Weekly P&L table */}
-      <div className="rounded-2xl p-5 bg-white" style={{ border: '1px solid #e5e5e5' }}>
-        <h3 className="font-semibold mb-4" style={{ color: '#1A1A1A' }}>Weekly P&L</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
-                <th className="text-left py-2 font-medium" style={{ color: '#888' }}>Week</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#888' }}>Revenue</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#888' }}>Cost</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#888' }}>Profit</th>
-                <th className="text-right py-2 font-medium" style={{ color: '#888' }}>Margin</th>
-                <th className="py-2 pl-4 w-40" style={{ color: '#888' }}>Revenue vs Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {weeks.map(([week, d]) => {
-                const margin = d.rev > 0 ? (d.profit / d.rev * 100) : 0
-                const revPct = d.rev / maxRev * 100
-                const costPct = d.rev > 0 ? (d.cost / d.rev * 100) : 0
-                return (
-                  <tr key={week} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                    <td className="py-2 font-medium" style={{ color: '#555' }}>
-                      {new Date(week).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
-                    </td>
-                    <td className="py-2 text-right font-semibold" style={{ color: '#1A1A1A' }}>{fmtK(d.rev)}</td>
-                    <td className="py-2 text-right" style={{ color: '#888' }}>{fmtK(d.cost)}</td>
-                    <td className="py-2 text-right font-semibold" style={{ color: d.profit >= 0 ? '#16a34a' : '#dc2626' }}>{fmtK(d.profit)}</td>
-                    <td className="py-2 text-right" style={{ color: margin >= 20 ? '#16a34a' : margin >= 10 ? '#d97706' : '#dc2626' }}>
-                      {margin.toFixed(1)}%
-                    </td>
-                    <td className="py-2 pl-4">
-                      <div className="relative h-4 rounded-full overflow-hidden" style={{ backgroundColor: '#f0f0f0' }}>
-                        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${revPct}%`, backgroundColor: '#22c55e', opacity: 0.3 }} />
-                        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(costPct, 100)}%`, backgroundColor: '#ef4444', opacity: 0.6 }} />
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Weekly P&L Bar Chart */}
+      {card(
+        <>
+          <h3 style={{ fontSize:14, fontWeight:600, color:'#1A1A1A', marginBottom:16 }}>Weekly P&L</h3>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={weeklyData} margin={{ top:0, right:16, left:0, bottom:0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize:11, fill:'#888' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={fmtK} tick={{ fontSize:11, fill:'#888' }} axisLine={false} tickLine={false} width={55} />
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceLine y={0} stroke="#e0e0e0" />
+              <Bar dataKey="profit" name="Net Profit" radius={[4,4,0,0]}>
+                {weeklyData.map((entry, i) => <Cell key={i} fill={entry.profit >= 0 ? '#16a34a' : '#dc2626'} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </>
+      )}
+
+      {/* Overall P&L + Margin Line side by side */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+        {card(
+          <>
+            <h3 style={{ fontSize:14, fontWeight:600, color:'#1A1A1A', marginBottom:16 }}>Overall P&L</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={overallData} margin={{ top:0, right:0, left:0, bottom:0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize:10, fill:'#888' }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={fmtK} tick={{ fontSize:11, fill:'#888' }} axisLine={false} tickLine={false} width={55} />
+                <Tooltip formatter={(v: any) => fmtK(v)} />
+                <Bar dataKey="value" name="Amount" radius={[4,4,0,0]}>
+                  {overallData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </>
+        )}
+
+        {card(
+          <>
+            <h3 style={{ fontSize:14, fontWeight:600, color:'#1A1A1A', marginBottom:16 }}>Weekly Profit Margin %</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={weeklyData} margin={{ top:0, right:16, left:0, bottom:0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize:11, fill:'#888' }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={v=>`${v}%`} tick={{ fontSize:11, fill:'#888' }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip formatter={(v: any) => `${v}%`} />
+                <ReferenceLine y={20} stroke="#16a34a" strokeDasharray="4 4" label={{ value:'20%', fontSize:10, fill:'#16a34a' }} />
+                <ReferenceLine y={10} stroke="#d97706" strokeDasharray="4 4" label={{ value:'10%', fontSize:10, fill:'#d97706' }} />
+                <Line type="monotone" dataKey="margin" name="Margin" stroke="#4a9eff" strokeWidth={2} dot={{ r:3, fill:'#4a9eff' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </>
+        )}
       </div>
     </div>
   )
