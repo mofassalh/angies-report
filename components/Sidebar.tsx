@@ -20,7 +20,6 @@ const nav = [
   {
     label: 'Reporting', icon: FileText,
     children: [
-      { label: 'Report', href: '/report' },
       { label: 'Data Input', href: '/data-input' },
       { label: 'Weekly Details Report', href: '/reporting/weekly-details' },
     ]
