@@ -1,112 +1,84 @@
 'use client'
 import { useFilters } from './FilterContext'
+import { useRef, useState, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
+
+function MultiDropdown({ label, options, selected, onChange }: {
+  label: string, options: {key:string,label:string}[], selected: string[], onChange: (v:string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [menuPos, setMenuPos] = useState({ top:0, left:0 })
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (!btnRef.current?.contains(e.target as Node) && !menuRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setMenuPos({ top: r.bottom + 4, left: r.left })
+    }
+    setOpen(o => !o)
+  }
+
+  const toggle = (key: string) => {
+    onChange(selected.includes(key) ? selected.filter(s => s !== key) : [...selected, key])
+  }
+
+  const hasVal = selected.length > 0
+  const dispLabel = !hasVal ? `All ${label}` : `${selected.length} ${label}`
+
+  return (
+    <>
+      <button ref={btnRef} onClick={handleOpen} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', border:`0.5px solid ${hasVal?'#D4A900':'#d0d0d0'}`, borderRadius:20, fontSize:12, cursor:'pointer', whiteSpace:'nowrap', background:hasVal?'#FFF3B0':'#fff', color:hasVal?'#7A5F00':'#666', fontWeight:hasVal?500:400 }}>
+        {dispLabel}
+        {hasVal && <span onClick={e=>{e.stopPropagation();onChange([])}} style={{fontSize:11,marginLeft:2}}>✕</span>}
+        <ChevronDown size={12}/>
+      </button>
+      {open && (
+        <div ref={menuRef} style={{ position:'fixed', top:menuPos.top, left:menuPos.left, zIndex:99999, minWidth:200, background:'#fff', border:'0.5px solid #d0d0d0', borderRadius:10, boxShadow:'0 8px 24px rgba(0,0,0,0.12)', maxHeight:280, overflowY:'auto' }}>
+          <div onClick={()=>onChange([])} style={{ padding:'9px 14px', fontSize:12, cursor:'pointer', background:selected.length===0?'#FFF3B0':'transparent', color:selected.length===0?'#7A5F00':'#333', fontWeight:selected.length===0?500:400 }}>All {label}</div>
+          {options.map(opt => {
+            const isSel = selected.includes(opt.key)
+            return (
+              <div key={opt.key} onClick={()=>toggle(opt.key)} style={{ padding:'9px 14px', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:8, background:isSel?'#FFF3B0':'transparent', color:isSel?'#7A5F00':'#333' }}>
+                <div style={{ width:14, height:14, border:`1.5px solid ${isSel?'#D4A900':'#ccc'}`, borderRadius:3, background:isSel?'#D4A900':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  {isSel && <span style={{fontSize:9,color:'#1A1A1A',fontWeight:700}}>✓</span>}
+                </div>
+                {opt.label}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+}
 
 export default function FilterBar() {
   const { filters, setFilters, locations, restaurants, availableMonths } = useFilters()
 
-  const toggleLocation = (loc: string) => {
-    const current = filters.locations
-    setFilters({ locations: current.includes(loc) ? current.filter(l => l !== loc) : [...current, loc] })
-  }
+  const locationOpts = locations.map(l => ({ key:l, label:l }))
+  const restaurantOpts = restaurants.map(r => ({ key:r.name, label:r.name }))
+  const monthOpts = availableMonths.map(m => ({ key:m.key, label:m.label }))
 
-  const toggleRestaurant = (rest: string) => {
-    const current = filters.restaurants
-    setFilters({ restaurants: current.includes(rest) ? current.filter(r => r !== rest) : [...current, rest] })
-  }
-
-  const years = [...new Set(availableMonths.map(m => m.key.split('-')[0]))]
-  const quarters = availableMonths.reduce((acc, m) => {
-    const [year, month] = m.key.split('-')
-    const q = Math.ceil(parseInt(month) / 3)
-    const key = `${year}-Q${q}`
-    if (!acc.includes(key)) acc.push(key)
-    return acc
-  }, [] as string[])
+  const hasAny = filters.locations.length>0 || filters.restaurants.length>0 || filters.months.length>0
 
   return (
-    <div className="bg-white px-6 py-3 flex flex-wrap gap-3 items-center" style={{ borderBottom: '1px solid #e5e5e5' }}>
-
-      {/* View Mode */}
-      <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: '#f5f5f5' }}>
-        {(['weekly', 'monthly', 'yearly'] as const).map(mode => (
-          <button key={mode} onClick={() => setFilters({ viewMode: mode })}
-            className="px-3 py-1 rounded-lg text-xs font-medium capitalize transition"
-            style={{ backgroundColor: filters.viewMode === mode ? '#F5C800' : 'transparent', color: filters.viewMode === mode ? '#1A1A1A' : '#888' }}>
-            {mode}
-          </button>
-        ))}
-      </div>
-
-      {/* Period */}
-      <div className="flex gap-1.5 flex-wrap">
-        <button onClick={() => setFilters({ period: 'all' })}
-          className="px-3 py-1 rounded-full text-xs font-medium transition"
-          style={{ backgroundColor: filters.period === 'all' ? '#F5C800' : '#f5f5f5', color: filters.period === 'all' ? '#1A1A1A' : '#666', border: '1px solid #e5e5e5' }}>
-          All Time
-        </button>
-        {years.map(y => (
-          <button key={y} onClick={() => setFilters({ period: y })}
-            className="px-3 py-1 rounded-full text-xs font-medium transition"
-            style={{ backgroundColor: filters.period === y ? '#F5C800' : '#f5f5f5', color: filters.period === y ? '#1A1A1A' : '#666', border: '1px solid #e5e5e5' }}>
-            {y}
-          </button>
-        ))}
-        {quarters.map(q => (
-          <button key={q} onClick={() => setFilters({ period: q })}
-            className="px-3 py-1 rounded-full text-xs font-medium transition"
-            style={{ backgroundColor: filters.period === q ? '#F5C800' : '#f5f5f5', color: filters.period === q ? '#1A1A1A' : '#666', border: '1px solid #e5e5e5' }}>
-            {q.replace('-', ' ')}
-          </button>
-        ))}
-        {availableMonths.map(m => (
-          <button key={m.key} onClick={() => setFilters({ period: m.key })}
-            className="px-3 py-1 rounded-full text-xs font-medium transition"
-            style={{ backgroundColor: filters.period === m.key ? '#F5C800' : '#f5f5f5', color: filters.period === m.key ? '#1A1A1A' : '#666', border: '1px solid #e5e5e5' }}>
-            {m.label.split(' ')[0]}
-          </button>
-        ))}
-      </div>
-
-      {/* Locations — multiple */}
-      <div className="flex gap-1.5 flex-wrap">
-        {locations.map(loc => (
-          <button key={loc} onClick={() => toggleLocation(loc)}
-            className="px-3 py-1 rounded-full text-xs font-medium transition"
-            style={{ backgroundColor: filters.locations.includes(loc) ? '#1A1A1A' : '#f5f5f5', color: filters.locations.includes(loc) ? '#fff' : '#666', border: '1px solid #e5e5e5' }}>
-            {filters.locations.includes(loc) ? '✓ ' : ''}{loc.split(' ')[0]}
-          </button>
-        ))}
-      </div>
-
-      {/* Restaurants — multiple */}
-      <div className="flex gap-1.5 flex-wrap">
-        {['Angies', 'Golden'].map(brand => {
-          const isActive = filters.restaurants.some(r => r.toLowerCase().includes(brand.toLowerCase()))
-          return (
-            <button key={brand}
-              onClick={() => {
-                const brandRests = restaurants.filter(r => r.name.includes(brand)).map(r => r.name)
-                const allSelected = brandRests.every(r => filters.restaurants.includes(r))
-                if (allSelected) {
-                  setFilters({ restaurants: filters.restaurants.filter(r => !brandRests.includes(r)) })
-                } else {
-                  setFilters({ restaurants: [...new Set([...filters.restaurants, ...brandRests])] })
-                }
-              }}
-              className="px-3 py-1 rounded-full text-xs font-medium transition"
-              style={{ backgroundColor: isActive ? '#F5C800' : '#f5f5f5', color: isActive ? '#1A1A1A' : '#666', border: '1px solid #e5e5e5' }}>
-              {isActive ? '✓ ' : ''}{brand}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Clear */}
-      {(filters.locations.length > 0 || filters.restaurants.length > 0 || filters.period !== 'all') && (
-        <button onClick={() => setFilters({ locations: [], restaurants: [], period: 'all' })}
-          className="px-3 py-1 rounded-full text-xs font-medium"
-          style={{ backgroundColor: '#fff0f0', color: '#cc0000', border: '1px solid #ffcccc' }}>
-          Clear all ✕
+    <div style={{ background:'#fff', borderBottom:'1px solid #e5e5e5', padding:'10px 24px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+      <MultiDropdown label="Months" options={monthOpts} selected={filters.months||[]} onChange={v=>setFilters({months:v})} />
+      <div style={{width:1,height:20,background:'#e5e5e5'}}/>
+      <MultiDropdown label="Locations" options={locationOpts} selected={filters.locations} onChange={v=>setFilters({locations:v})} />
+      <MultiDropdown label="Restaurants" options={restaurantOpts} selected={filters.restaurants} onChange={v=>setFilters({restaurants:v})} />
+      {hasAny && (
+        <button onClick={()=>setFilters({locations:[],restaurants:[],months:[]})} style={{ padding:'6px 12px', border:'0.5px solid #ffcccc', borderRadius:20, background:'#fff5f5', color:'#cc0000', fontSize:12, cursor:'pointer' }}>
+          Clear ✕
         </button>
       )}
     </div>

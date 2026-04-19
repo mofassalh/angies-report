@@ -5,8 +5,7 @@ import { createClient } from '@/lib/supabase'
 interface Filters {
   locations: string[]
   restaurants: string[]
-  period: string // 'all' | '2026-01' | '2026-Q1' | '2026'
-  viewMode: 'weekly' | 'monthly' | 'yearly'
+  months: string[]
 }
 
 interface FilterContextType {
@@ -27,8 +26,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const [filters, setFiltersState] = useState<Filters>({
     locations: [],
     restaurants: [],
-    period: 'all',
-    viewMode: 'weekly',
+    months: [],
   })
   const [data, setData] = useState<any[]>([])
   const [restaurants, setRestaurants] = useState<any[]>([])
@@ -39,29 +37,21 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   const fetchData = async () => {
     setLoading(true)
-    const { data: rests } = await supabase
-      .from('report_restaurants')
-      .select('*, report_locations(name)')
-      .order('name')
+    const { data: rests } = await supabase.from('report_restaurants').select('*, report_locations(name)').order('name')
     setRestaurants(rests || [])
     const locs = [...new Set((rests || []).map((r: any) => r.report_locations?.name).filter(Boolean))] as string[]
     setLocations(locs)
-
-    const { data: weekly } = await supabase
-      .from('report_weekly_data')
-      .select('*, report_restaurants(name, brand, report_locations(name))')
-      .order('week_start')
+    const { data: weekly } = await supabase.from('report_weekly_data').select('*, report_restaurants(name, brand, report_locations(name))').order('week_start')
     const allData = weekly || []
     setData(allData)
-
     const monthMap: Record<string, string> = {}
     allData.forEach((d: any) => {
       const date = new Date(d.week_start)
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      const label = date.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+      const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`
+      const label = date.toLocaleDateString('en-AU', { month:'long', year:'numeric' })
       monthMap[key] = label
     })
-    const months = Object.entries(monthMap).sort((a, b) => a[0].localeCompare(b[0])).map(([key, label]) => ({ key, label }))
+    const months = Object.entries(monthMap).sort((a,b)=>a[0].localeCompare(b[0])).map(([key,label])=>({key,label}))
     setAvailableMonths(months)
     setLoading(false)
   }
@@ -73,30 +63,10 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const filteredData = data.filter(d => {
     const loc = d.report_restaurants?.report_locations?.name
     const rest = d.report_restaurants?.name
-
-    const locMatch = filters.locations.length === 0 || filters.locations.includes(loc)
-    const restMatch = filters.restaurants.length === 0 || filters.restaurants.includes(rest)
-
-    let dateMatch = true
-    if (filters.period !== 'all') {
-      const week = d.week_start
-      if (filters.period.length === 7) {
-        // Month: 2026-01
-        dateMatch = week.startsWith(filters.period)
-      } else if (filters.period.includes('Q')) {
-        // Quarter: 2026-Q1
-        const [year, q] = filters.period.split('-Q')
-        const qNum = parseInt(q)
-        const month = parseInt(week.split('-')[1])
-        const qMonth = Math.ceil(month / 3)
-        dateMatch = week.startsWith(year) && qMonth === qNum
-      } else {
-        // Year: 2026
-        dateMatch = week.startsWith(filters.period)
-      }
-    }
-
-    return locMatch && restMatch && dateMatch
+    const locMatch = filters.locations.length===0 || filters.locations.includes(loc)
+    const restMatch = filters.restaurants.length===0 || filters.restaurants.includes(rest)
+    const monthMatch = filters.months.length===0 || filters.months.includes(d.week_start.substring(0,7))
+    return locMatch && restMatch && monthMatch
   })
 
   return (
