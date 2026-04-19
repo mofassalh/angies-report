@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FileText, LogOut } from 'lucide-react'
+import { LayoutDashboard, FileText, LogOut, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 const nav = [
@@ -26,7 +26,7 @@ const nav = [
   },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -38,12 +38,19 @@ export default function Sidebar() {
 
   return (
     <aside style={{ width:220, flexShrink:0, height:'100vh', background:'#fff', borderRight:'1px solid #e5e5e5', display:'flex', flexDirection:'column' }}>
-      <div style={{ padding:'16px 20px', borderBottom:'1px solid #e5e5e5', display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ width:32, height:32, borderRadius:8, background:'#F5C800', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:14 }}>A</div>
-        <div>
-          <div style={{ fontWeight:700, fontSize:13, color:'#1A1A1A' }}>Angie's Reports</div>
-          <div style={{ fontSize:11, color:'#888' }}>Business Intelligence</div>
+      <div style={{ padding:'16px 20px', borderBottom:'1px solid #e5e5e5', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ width:32, height:32, borderRadius:8, background:'#F5C800', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:14 }}>A</div>
+          <div>
+            <div style={{ fontWeight:700, fontSize:13, color:'#1A1A1A' }}>Angie's Reports</div>
+            <div style={{ fontSize:11, color:'#888' }}>Business Intelligence</div>
+          </div>
         </div>
+        {onClose && (
+          <button onClick={onClose} className="md:hidden" style={{ border:'none', background:'none', cursor:'pointer', padding:4 }}>
+            <X size={18} color="#888" />
+          </button>
+        )}
       </div>
       <nav style={{ flex:1, padding:12, overflowY:'auto' }}>
         {nav.map(section => {
@@ -57,7 +64,7 @@ export default function Sidebar() {
                 {section.children.map(child => {
                   const isActive = pathname === child.href
                   return (
-                    <Link key={child.href} href={child.href} style={{ display:'block', padding:'7px 10px 7px 28px', borderRadius:8, textDecoration:'none', fontSize:13, background:isActive?'#F5C800':'transparent', color:isActive?'#1A1A1A':'#555', fontWeight:isActive?600:400 }}>
+                    <Link key={child.href} href={child.href} onClick={onClose} style={{ display:'block', padding:'7px 10px 7px 28px', borderRadius:8, textDecoration:'none', fontSize:13, background:isActive?'#F5C800':'transparent', color:isActive?'#1A1A1A':'#555', fontWeight:isActive?600:400 }}>
                       {child.label}
                     </Link>
                   )
