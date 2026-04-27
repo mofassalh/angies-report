@@ -5,24 +5,19 @@ import { ChevronDown } from 'lucide-react'
 
 const MONTH_NAMES: Record<string, string> = { '01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December' }
 
-const MONTH_COLORS: Record<string, { bg: string, totalBg: string, border: string, totalBorder: string, text: string, totalText: string, subText: string }> = {
-  '01': { bg:'#FAF8FF', totalBg:'#EDE9FE', border:'#ede9fe', totalBorder:'#8b5cf6', text:'#7c5cc4', totalText:'#5b21b6', subText:'#c4b5fd' },
-  '02': { bg:'#F0FDF4', totalBg:'#DCFCE7', border:'#dcfce7', totalBorder:'#22c55e', text:'#3a8a58', totalText:'#166534', subText:'#86efac' },
-  '03': { bg:'#FFF7ED', totalBg:'#FFEDD5', border:'#fed7aa', totalBorder:'#f97316', text:'#c2560c', totalText:'#9a3412', subText:'#fdba74' },
-  '04': { bg:'#FFF1F2', totalBg:'#FFE4E6', border:'#fecdd3', totalBorder:'#f43f5e', text:'#be123c', totalText:'#9f1239', subText:'#fda4af' },
-  '05': { bg:'#F0F9FF', totalBg:'#E0F2FE', border:'#bae6fd', totalBorder:'#0ea5e9', text:'#0369a1', totalText:'#075985', subText:'#7dd3fc' },
-  '06': { bg:'#FFFBEB', totalBg:'#FEF3C7', border:'#fde68a', totalBorder:'#f59e0b', text:'#b45309', totalText:'#92400e', subText:'#fcd34d' },
-  '07': { bg:'#F5F3FF', totalBg:'#EDE9FE', border:'#ddd6fe', totalBorder:'#7c3aed', text:'#6d28d9', totalText:'#4c1d95', subText:'#a78bfa' },
-  '08': { bg:'#F0FDF4', totalBg:'#DCFCE7', border:'#bbf7d0', totalBorder:'#16a34a', text:'#15803d', totalText:'#14532d', subText:'#4ade80' },
-  '09': { bg:'#EFF6FF', totalBg:'#DBEAFE', border:'#bfdbfe', totalBorder:'#3b82f6', text:'#1d4ed8', totalText:'#1e3a8a', subText:'#93c5fd' },
-  '10': { bg:'#FDF4FF', totalBg:'#FAE8FF', border:'#f5d0fe', totalBorder:'#a855f7', text:'#7e22ce', totalText:'#581c87', subText:'#d8b4fe' },
-  '11': { bg:'#FFF7ED', totalBg:'#FFEDD5', border:'#fed7aa', totalBorder:'#ea580c', text:'#c2410c', totalText:'#7c2d12', subText:'#fb923c' },
-  '12': { bg:'#F8FBFF', totalBg:'#DBEAFE', border:'#dbeafe', totalBorder:'#3b82f6', text:'#4a7cc7', totalText:'#1e40af', subText:'#93c5fd' },
-}
-
-function getMonthColor(weekStart: string) {
-  const mo = weekStart.substring(5, 7)
-  return MONTH_COLORS[mo] || MONTH_COLORS['01']
+const MONTH_COLORS: Record<string, { totalBg:string, totalBorder:string, totalText:string, subText:string }> = {
+  '01': { totalBg:'#EDE9FE', totalBorder:'#8b5cf6', totalText:'#5b21b6', subText:'#a78bfa' },
+  '02': { totalBg:'#DCFCE7', totalBorder:'#22c55e', totalText:'#166534', subText:'#4ade80' },
+  '03': { totalBg:'#FFEDD5', totalBorder:'#f97316', totalText:'#9a3412', subText:'#fdba74' },
+  '04': { totalBg:'#FFE4E6', totalBorder:'#f43f5e', totalText:'#9f1239', subText:'#fda4af' },
+  '05': { totalBg:'#E0F2FE', totalBorder:'#0ea5e9', totalText:'#075985', subText:'#7dd3fc' },
+  '06': { totalBg:'#FEF3C7', totalBorder:'#f59e0b', totalText:'#92400e', subText:'#fcd34d' },
+  '07': { totalBg:'#EDE9FE', totalBorder:'#7c3aed', totalText:'#4c1d95', subText:'#a78bfa' },
+  '08': { totalBg:'#DCFCE7', totalBorder:'#16a34a', totalText:'#14532d', subText:'#4ade80' },
+  '09': { totalBg:'#DBEAFE', totalBorder:'#3b82f6', totalText:'#1e3a8a', subText:'#93c5fd' },
+  '10': { totalBg:'#FAE8FF', totalBorder:'#a855f7', totalText:'#581c87', subText:'#d8b4fe' },
+  '11': { totalBg:'#FFEDD5', totalBorder:'#ea580c', totalText:'#7c2d12', subText:'#fb923c' },
+  '12': { totalBg:'#DBEAFE', totalBorder:'#3b82f6', totalText:'#1e40af', subText:'#93c5fd' },
 }
 
 function Dropdown({ label, options, selected, multi, onChange }: {
@@ -79,7 +74,7 @@ export default function WeeklyDetailsReport() {
   const supabase = createClient()
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       const { data } = await supabase.from('report_weekly_data').select('restaurant_id,restaurant_name,location,week_start,partner,orders,gross_revenue,net_revenue,food_cost,staff_cost,operation_cost').order('week_start')
       const d = data || []
       setAllData(d)
@@ -87,7 +82,7 @@ export default function WeeklyDetailsReport() {
       if (weeks.length > 0) { setFromWeek(weeks[0]); setToWeek(weeks[weeks.length-1]) }
       setLoading(false)
     }
-    fetch()
+    fetchData()
   }, [])
 
   const locationNames = [...new Set(allData.map((r: any) => r.location).filter(Boolean))] as string[]
@@ -253,7 +248,7 @@ export default function WeeklyDetailsReport() {
         </div>
 
         {/* Table */}
-        <div style={{overflow:'auto'}}>
+        <div style={{overflow:'auto',maxHeight:'calc(100vh - 280px)'}}>
           <table style={{borderCollapse:'collapse',fontSize:12,tableLayout:'fixed',width:`${LBL_W+columns.reduce((s,c)=>s+(c.isTotal?110:95),0)}px`}}>
             <colgroup>
               <col style={{width:LBL_W}}/>
@@ -265,16 +260,16 @@ export default function WeeklyDetailsReport() {
                 {columns.map((col,i)=>{
                   const mc = MONTH_COLORS[col.monthKey] || MONTH_COLORS['01']
                   if (col.isTotal) return (
-                    <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'8px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:`2px solid ${mc.totalBorder}`,background:mc.totalBg,color:mc.totalText,borderLeft:`1px solid ${mc.border}`,borderRight:`1px solid ${mc.border}`}}>
+                    <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'8px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:`2px solid ${mc.totalBorder}`,background:mc.totalBg,color:mc.totalText,borderLeft:`1px solid ${mc.totalBorder}40`,borderRight:`1px solid ${mc.totalBorder}40`}}>
                       <div style={{fontSize:9,fontWeight:400,color:mc.subText,textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:2}}>Monthly total</div>
                       <div style={{fontSize:12,fontWeight:500}}>{col.label}</div>
                       {col.sub2 && <div style={{fontSize:10,fontWeight:400,color:mc.subText}}>{col.sub2}</div>}
                     </th>
                   )
                   return (
-                    <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'8px 10px',fontSize:11,fontWeight:400,whiteSpace:'nowrap',borderBottom:`1px solid ${mc.border}`,background:mc.bg,color:mc.text}}>
+                    <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'8px 10px',fontSize:11,fontWeight:400,whiteSpace:'nowrap',borderBottom:'1px solid #e8e8e8',background:'white',color:'#888'}}>
                       <div>{col.label}</div>
-                      <div style={{fontWeight:400,fontSize:10,color:mc.subText}}>{col.sub}</div>
+                      <div style={{fontWeight:400,fontSize:10,color:'#ccc'}}>{col.sub}</div>
                     </th>
                   )
                 })}
@@ -284,10 +279,18 @@ export default function WeeklyDetailsReport() {
               {rows.map((row,ri)=>{
                 if('section' in row) return (
                   <tr key={ri}>
-                    <td style={{position:'sticky',left:0,zIndex:6,width:LBL_W,background:'#f8f8f6',fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'1px',color:'#8A6800',borderTop:'4px solid #f0f0ee',padding:'6px 12px 5px',whiteSpace:'nowrap',borderRight:'0.5px solid #e8e8e8',borderLeft:'3px solid #E8C84A'}}>{row.section}</td>
+                    <td style={{
+                      position:'sticky', left:0, top:0, zIndex:6,
+                      width:LBL_W, background:'#f8f8f6',
+                      fontSize:10, fontWeight:600, textTransform:'uppercase',
+                      letterSpacing:'1px', color:'#8A6800',
+                      borderTop:'4px solid #f0f0ee', borderBottom:'0.5px solid #e8e8e8',
+                      padding:'6px 12px 5px', whiteSpace:'nowrap',
+                      borderRight:'0.5px solid #e8e8e8', borderLeft:'3px solid #E8C84A'
+                    }}>{row.section}</td>
                     {columns.map((col,ci)=>{
                       const mc = MONTH_COLORS[col.monthKey] || MONTH_COLORS['01']
-                      return <td key={ci} style={{background:col.isTotal?mc.totalBg:mc.bg,borderTop:'4px solid #f0f0ee',borderBottom:'0.5px solid #ebebeb',...(col.isTotal?{borderLeft:`1px solid ${mc.border}`,borderRight:`1px solid ${mc.border}`}:{})}}/>
+                      return <td key={ci} style={{background:col.isTotal?mc.totalBg:'#f8f8f6',borderTop:'4px solid #f0f0ee',borderBottom:'0.5px solid #ebebeb',...(col.isTotal?{borderLeft:`1px solid ${mc.totalBorder}40`,borderRight:`1px solid ${mc.totalBorder}40`}:{})}}/>
                     })}
                   </tr>
                 )
@@ -302,16 +305,16 @@ export default function WeeklyDetailsReport() {
                       const d = agg(col.rows)
                       const val = row.get(d)
                       const customColor = 'color' in row&&row.color ? row.color(d) : null
-                      const defaultColor = col.isTotal ? mc.totalText : mc.text
+                      const defaultColor = col.isTotal ? mc.totalText : '#1a1a1a'
                       const color = customColor || defaultColor
                       return (
                         <td key={ci} style={{
                           textAlign:'right', padding:'6px 10px', whiteSpace:'nowrap',
                           borderBottom:'0.5px solid #ebebeb',
-                          background: col.isTotal ? mc.totalBg : mc.bg,
+                          background: col.isTotal ? mc.totalBg : 'transparent',
                           color, fontWeight:isBold?500:400,
                           fontSize:isMuted?11:12,
-                          ...(col.isTotal?{borderLeft:`1px solid ${mc.border}`,borderRight:`1px solid ${mc.border}`}:{})
+                          ...(col.isTotal?{borderLeft:`1px solid ${mc.totalBorder}40`,borderRight:`1px solid ${mc.totalBorder}40`}:{})
                         }}>{val}</td>
                       )
                     })}
