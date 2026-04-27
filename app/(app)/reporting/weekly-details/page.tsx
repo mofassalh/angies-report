@@ -5,6 +5,26 @@ import { ChevronDown } from 'lucide-react'
 
 const MONTH_NAMES: Record<string, string> = { '01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December' }
 
+const MONTH_COLORS: Record<string, { bg: string, totalBg: string, border: string, totalBorder: string, text: string, totalText: string, subText: string }> = {
+  '01': { bg:'#FAF8FF', totalBg:'#EDE9FE', border:'#ede9fe', totalBorder:'#8b5cf6', text:'#7c5cc4', totalText:'#5b21b6', subText:'#c4b5fd' },
+  '02': { bg:'#F0FDF4', totalBg:'#DCFCE7', border:'#dcfce7', totalBorder:'#22c55e', text:'#3a8a58', totalText:'#166534', subText:'#86efac' },
+  '03': { bg:'#FFF7ED', totalBg:'#FFEDD5', border:'#fed7aa', totalBorder:'#f97316', text:'#c2560c', totalText:'#9a3412', subText:'#fdba74' },
+  '04': { bg:'#FFF1F2', totalBg:'#FFE4E6', border:'#fecdd3', totalBorder:'#f43f5e', text:'#be123c', totalText:'#9f1239', subText:'#fda4af' },
+  '05': { bg:'#F0F9FF', totalBg:'#E0F2FE', border:'#bae6fd', totalBorder:'#0ea5e9', text:'#0369a1', totalText:'#075985', subText:'#7dd3fc' },
+  '06': { bg:'#FFFBEB', totalBg:'#FEF3C7', border:'#fde68a', totalBorder:'#f59e0b', text:'#b45309', totalText:'#92400e', subText:'#fcd34d' },
+  '07': { bg:'#F5F3FF', totalBg:'#EDE9FE', border:'#ddd6fe', totalBorder:'#7c3aed', text:'#6d28d9', totalText:'#4c1d95', subText:'#a78bfa' },
+  '08': { bg:'#F0FDF4', totalBg:'#DCFCE7', border:'#bbf7d0', totalBorder:'#16a34a', text:'#15803d', totalText:'#14532d', subText:'#4ade80' },
+  '09': { bg:'#EFF6FF', totalBg:'#DBEAFE', border:'#bfdbfe', totalBorder:'#3b82f6', text:'#1d4ed8', totalText:'#1e3a8a', subText:'#93c5fd' },
+  '10': { bg:'#FDF4FF', totalBg:'#FAE8FF', border:'#f5d0fe', totalBorder:'#a855f7', text:'#7e22ce', totalText:'#581c87', subText:'#d8b4fe' },
+  '11': { bg:'#FFF7ED', totalBg:'#FFEDD5', border:'#fed7aa', totalBorder:'#ea580c', text:'#c2410c', totalText:'#7c2d12', subText:'#fb923c' },
+  '12': { bg:'#F8FBFF', totalBg:'#DBEAFE', border:'#dbeafe', totalBorder:'#3b82f6', text:'#4a7cc7', totalText:'#1e40af', subText:'#93c5fd' },
+}
+
+function getMonthColor(weekStart: string) {
+  const mo = weekStart.substring(5, 7)
+  return MONTH_COLORS[mo] || MONTH_COLORS['01']
+}
+
 function Dropdown({ label, options, selected, multi, onChange }: {
   label: string, options: {key:string,label:string}[], selected: string[], multi?: boolean, onChange: (v:string[]) => void
 }) {
@@ -106,29 +126,29 @@ export default function WeeklyDetailsReport() {
   const profitColor=(v:number)=>v>=20?'#16a34a':v>=10?'#d97706':'#dc2626'
   const signColor=(v:number)=>v>=0?'#16a34a':'#dc2626'
 
-  type Col = { key:string, label:string, sub:string, sub2?:string, isTotal:boolean, rows:any[] }
+  type Col = { key:string, label:string, sub:string, sub2?:string, isTotal:boolean, monthKey:string, rows:any[] }
   const columns: Col[] = []
   if (viewMode==='weekly') {
     const sel=allWeeks.filter(w=>w>=fromWeek&&w<=toWeek), mMap:Record<string,string[]>={}
     sel.forEach(w=>{const m=w.substring(0,7);if(!mMap[m])mMap[m]=[];mMap[m].push(w)})
     Object.entries(mMap).sort().forEach(([m,weeks])=>{
       const [y,mo]=m.split('-')
-      weeks.forEach(w=>{const idx=allWeeks.indexOf(w)+1;columns.push({key:w,label:`Week ${idx}`,sub:new Date(w+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'}),isTotal:false,rows:baseFiltered.filter(d=>d.week_start===w)})})
-      columns.push({key:`t-${m}`,label:MONTH_NAMES[mo]||mo,sub:'Monthly total',sub2:y,isTotal:true,rows:baseFiltered.filter(d=>weeks.includes(d.week_start))})
+      weeks.forEach(w=>{const idx=allWeeks.indexOf(w)+1;columns.push({key:w,label:`Week ${idx}`,sub:new Date(w+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'}),isTotal:false,monthKey:mo,rows:baseFiltered.filter(d=>d.week_start===w)})})
+      columns.push({key:`t-${m}`,label:MONTH_NAMES[mo]||mo,sub:'Monthly total',sub2:y,isTotal:true,monthKey:mo,rows:baseFiltered.filter(d=>weeks.includes(d.week_start))})
     })
   } else if (viewMode==='monthly') {
     const months=selMonths.length>0?allMonths.filter(m=>selMonths.includes(m)):allMonths, yMap:Record<string,string[]>={}
     months.forEach(m=>{const y=m.substring(0,4);if(!yMap[y])yMap[y]=[];yMap[y].push(m)})
     Object.entries(yMap).sort().forEach(([y,mos])=>{
-      mos.forEach(m=>{const [,mo]=m.split('-');columns.push({key:m,label:MONTH_NAMES[mo]||mo,sub:y,isTotal:false,rows:baseFiltered.filter(d=>d.week_start.startsWith(m))})})
-      columns.push({key:`t-${y}`,label:y,sub:'Annual total',isTotal:true,rows:baseFiltered.filter(d=>mos.some(m=>d.week_start.startsWith(m)))})
+      mos.forEach(m=>{const [,mo]=m.split('-');columns.push({key:m,label:MONTH_NAMES[mo]||mo,sub:y,isTotal:false,monthKey:mo,rows:baseFiltered.filter(d=>d.week_start.startsWith(m))})})
+      columns.push({key:`t-${y}`,label:y,sub:'Annual total',isTotal:true,monthKey:'00',rows:baseFiltered.filter(d=>mos.some(m=>d.week_start.startsWith(m)))})
     })
   } else {
     const years=selYears.length>0?allYears.filter(y=>selYears.includes(y)):allYears
     years.forEach(y=>{
       const mos=allMonths.filter(m=>m.startsWith(y))
-      mos.forEach(m=>{const [,mo]=m.split('-');columns.push({key:m,label:MONTH_NAMES[mo]||mo,sub:y,isTotal:false,rows:baseFiltered.filter(d=>d.week_start.startsWith(m))})})
-      columns.push({key:`t-${y}`,label:y,sub:'Annual total',isTotal:true,rows:baseFiltered.filter(d=>d.week_start.startsWith(y))})
+      mos.forEach(m=>{const [,mo]=m.split('-');columns.push({key:m,label:MONTH_NAMES[mo]||mo,sub:y,isTotal:false,monthKey:mo,rows:baseFiltered.filter(d=>d.week_start.startsWith(m))})})
+      columns.push({key:`t-${y}`,label:y,sub:'Annual total',isTotal:true,monthKey:'00',rows:baseFiltered.filter(d=>d.week_start.startsWith(y))})
     })
   }
 
@@ -173,30 +193,13 @@ export default function WeeklyDetailsReport() {
     {label:'Commission %',get:d=>fp(d.ddComm),indent:true,muted:true,color:_d=>'#dc2626'},
   ]
 
-  // KPI aggregation
   const allFiltered = baseFiltered.filter(d => {
     if (viewMode==='weekly') return d.week_start>=fromWeek && d.week_start<=toWeek
     if (viewMode==='monthly') return selMonths.length===0||selMonths.some(m=>d.week_start.startsWith(m))
     return selYears.length===0||selYears.some(y=>d.week_start.startsWith(y))
   })
   const kpiData = agg(allFiltered)
-
   const LBL_W = 205
-
-  const thBase: React.CSSProperties = {
-    position:'sticky', top:0, zIndex:10, textAlign:'right', padding:'8px 10px',
-    fontSize:11, fontWeight:400, whiteSpace:'nowrap',
-    borderBottom:'1px solid #e8e8e8', background:'white', color:'#888',
-  }
-  const thTotal: React.CSSProperties = {
-    position:'sticky', top:0, zIndex:10, textAlign:'right', padding:'8px 10px',
-    fontSize:11, fontWeight:500, whiteSpace:'nowrap',
-    borderBottom:'2px solid #E8C84A',
-    background:'#f8f8f6',
-    color:'#444',
-    borderLeft:'1px solid rgba(232,200,74,0.35)',
-    borderRight:'1px solid rgba(232,200,74,0.35)',
-  }
 
   if (loading) return (
     <div style={{minHeight:'60vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -259,20 +262,22 @@ export default function WeeklyDetailsReport() {
             <thead>
               <tr>
                 <th style={{position:'sticky',top:0,left:0,zIndex:20,width:LBL_W,background:'white',borderBottom:'1px solid #e8e8e8',textAlign:'left',padding:'8px 12px',fontSize:11,fontWeight:400,color:'#aaa'}}></th>
-                {columns.map((col,i)=>(
-                  col.isTotal ? (
-                    <th key={i} style={thTotal}>
-                      <div style={{fontSize:9,fontWeight:400,color:'#aaa',marginBottom:2,textTransform:'uppercase',letterSpacing:'0.6px'}}>{col.sub}</div>
-                      <div style={{fontSize:12,fontWeight:500,color:'#333'}}>{col.label}</div>
-                      {col.sub2 && <div style={{fontSize:10,fontWeight:400,color:'#aaa'}}>{col.sub2}</div>}
-                    </th>
-                  ) : (
-                    <th key={i} style={thBase}>
-                      <div>{col.label}</div>
-                      <div style={{fontWeight:400,fontSize:10,color:'#ccc'}}>{col.sub}</div>
+                {columns.map((col,i)=>{
+                  const mc = MONTH_COLORS[col.monthKey] || MONTH_COLORS['01']
+                  if (col.isTotal) return (
+                    <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'8px 10px',fontSize:11,fontWeight:500,whiteSpace:'nowrap',borderBottom:`2px solid ${mc.totalBorder}`,background:mc.totalBg,color:mc.totalText,borderLeft:`1px solid ${mc.border}`,borderRight:`1px solid ${mc.border}`}}>
+                      <div style={{fontSize:9,fontWeight:400,color:mc.subText,textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:2}}>Monthly total</div>
+                      <div style={{fontSize:12,fontWeight:500}}>{col.label}</div>
+                      {col.sub2 && <div style={{fontSize:10,fontWeight:400,color:mc.subText}}>{col.sub2}</div>}
                     </th>
                   )
-                ))}
+                  return (
+                    <th key={i} style={{position:'sticky',top:0,zIndex:10,textAlign:'right',padding:'8px 10px',fontSize:11,fontWeight:400,whiteSpace:'nowrap',borderBottom:`1px solid ${mc.border}`,background:mc.bg,color:mc.text}}>
+                      <div>{col.label}</div>
+                      <div style={{fontWeight:400,fontSize:10,color:mc.subText}}>{col.sub}</div>
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
@@ -280,29 +285,33 @@ export default function WeeklyDetailsReport() {
                 if('section' in row) return (
                   <tr key={ri}>
                     <td style={{position:'sticky',left:0,zIndex:6,width:LBL_W,background:'#f8f8f6',fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'1px',color:'#8A6800',borderTop:'4px solid #f0f0ee',padding:'6px 12px 5px',whiteSpace:'nowrap',borderRight:'0.5px solid #e8e8e8',borderLeft:'3px solid #E8C84A'}}>{row.section}</td>
-                    {columns.map((_,ci)=><td key={ci} style={{background:'#f8f8f6',borderTop:'4px solid #f0f0ee',borderBottom:'0.5px solid #ebebeb', ...(columns[ci].isTotal?{borderLeft:'1px solid rgba(232,200,74,0.35)',borderRight:'1px solid rgba(232,200,74,0.35)'}:{})}}/>)}
+                    {columns.map((col,ci)=>{
+                      const mc = MONTH_COLORS[col.monthKey] || MONTH_COLORS['01']
+                      return <td key={ci} style={{background:col.isTotal?mc.totalBg:mc.bg,borderTop:'4px solid #f0f0ee',borderBottom:'0.5px solid #ebebeb',...(col.isTotal?{borderLeft:`1px solid ${mc.border}`,borderRight:`1px solid ${mc.border}`}:{})}}/>
+                    })}
                   </tr>
                 )
                 const isBold='bold' in row&&row.bold
                 const isMuted='muted' in row&&row.muted
                 const isIndent='indent' in row&&row.indent
                 return (
-                  <tr key={ri} style={{}} onMouseEnter={e=>(e.currentTarget.style.background='#fafaf8')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
+                  <tr key={ri} onMouseEnter={e=>(e.currentTarget.style.background='#fafaf8')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
                     <td style={{position:'sticky',left:0,zIndex:5,width:LBL_W,background:isBold?'#fafaf8':'white',borderRight:'0.5px solid #e8e8e8',textAlign:'left',padding:'6px 12px',paddingLeft:isIndent?22:12,fontWeight:isBold?500:400,color:isMuted?'#bbb':isIndent?'#888':'#1a1a1a',fontSize:isMuted?11:12,borderBottom:'0.5px solid #ebebeb',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</td>
                     {columns.map((col,ci)=>{
-                      const d=agg(col.rows)
-                      const val=row.get(d)
-                      const customColor='color' in row&&row.color?row.color(d):null
-                      const defaultColor=col.isTotal?'#333':'#1a1a1a'
-                      const color=customColor||defaultColor
+                      const mc = MONTH_COLORS[col.monthKey] || MONTH_COLORS['01']
+                      const d = agg(col.rows)
+                      const val = row.get(d)
+                      const customColor = 'color' in row&&row.color ? row.color(d) : null
+                      const defaultColor = col.isTotal ? mc.totalText : mc.text
+                      const color = customColor || defaultColor
                       return (
                         <td key={ci} style={{
-                          textAlign:'right',padding:'6px 10px',whiteSpace:'nowrap',
+                          textAlign:'right', padding:'6px 10px', whiteSpace:'nowrap',
                           borderBottom:'0.5px solid #ebebeb',
-                          background:isBold?(col.isTotal?'#f4f3ef':'#fafaf8'):(col.isTotal?'#f8f8f6':'transparent'),
+                          background: col.isTotal ? mc.totalBg : mc.bg,
                           color, fontWeight:isBold?500:400,
                           fontSize:isMuted?11:12,
-                          ...(col.isTotal?{borderLeft:'1px solid rgba(232,200,74,0.35)',borderRight:'1px solid rgba(232,200,74,0.35)'}:{})
+                          ...(col.isTotal?{borderLeft:`1px solid ${mc.border}`,borderRight:`1px solid ${mc.border}`}:{})
                         }}>{val}</td>
                       )
                     })}
