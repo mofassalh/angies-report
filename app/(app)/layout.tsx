@@ -30,8 +30,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <FilterProvider>
       <div style={{ display:'flex', height:'100vh', overflow:'hidden', backgroundColor:'#f8f9fc' }}>
-        <div style={{ flexShrink:0, height:'100vh', position:'sticky', top:0 }}>
-          <Sidebar onClose={() => {}} />
+        <div className="hidden md:block" style={{ flexShrink:0, height:'100vh', position:'sticky', top:0 }}>
+          <Sidebar />
         </div>
         <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, height:'100vh', overflow:'hidden' }}>
           {showFilterBar && <FilterBar />}
