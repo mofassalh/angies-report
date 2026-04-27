@@ -48,10 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <button onClick={() => setSidebarOpen(true)} style={{ border:'none', background:'none', cursor:'pointer', padding:4 }}>
               <Menu size={22} color="#1A1A1A" />
             </button>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:28, height:28, borderRadius:6, background:'#F5C800', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:13 }}>A</div>
-              <span style={{ fontWeight:600, fontSize:14, color:'#1a1a1a' }}>Angie's Reports</span>
-            </div>
+            
           </div>
           {showFilterBar && <FilterBar />}
           <main style={{ flex:1, overflow:'auto', padding:24 }}>

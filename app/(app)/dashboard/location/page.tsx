@@ -52,7 +52,6 @@ export default function LocationPage() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-      <h2 style={{ fontSize:18, fontWeight:600, color:'#1A1A1A' }}>Location Wise Analysis</h2>
 
       {/* Location Cards */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12 }}>
