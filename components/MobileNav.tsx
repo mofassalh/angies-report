@@ -1,21 +1,21 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { TrendingUp, BarChart2, MapPin, Database, MoreHorizontal, X, DollarSign, Zap, Activity, FileText } from 'lucide-react'
+import { TrendingUp, BarChart2, MapPin, DollarSign, MoreHorizontal, X, Zap, Activity, FileText, Database } from 'lucide-react'
 import { useState } from 'react'
 
 const mainTabs = [
   { label: 'Revenue',  href: '/dashboard/revenue',  icon: TrendingUp },
   { label: 'P&L',      href: '/dashboard/pl',        icon: BarChart2 },
   { label: 'Location', href: '/dashboard/location',  icon: MapPin },
-  { label: 'Data',     href: '/data-input',          icon: Database },
+  { label: 'Cost',     href: '/dashboard/cost',      icon: DollarSign },
 ]
 
 const moreTabs = [
-  { label: 'Cost Analysis',        href: '/dashboard/cost',      icon: DollarSign },
-  { label: 'Channel Performance',  href: '/sales/channel',       icon: Zap },
-  { label: 'Transaction Analysis', href: '/sales/transactions',  icon: Activity },
-  { label: 'Growth Trends',        href: '/sales/growth',        icon: TrendingUp },
+  { label: 'Channel Performance',  href: '/sales/channel',            icon: Zap },
+  { label: 'Transaction Analysis', href: '/sales/transactions',       icon: Activity },
+  { label: 'Growth Trends',        href: '/sales/growth',             icon: TrendingUp },
+  { label: 'Data Input',           href: '/data-input',               icon: Database },
   { label: 'Weekly Details',       href: '/reporting/weekly-details', icon: FileText },
 ]
 
@@ -25,7 +25,6 @@ export default function MobileNav() {
 
   return (
     <>
-      {/* More Drawer Overlay */}
       {showMore && (
         <div
           onClick={() => setShowMore(false)}
@@ -33,7 +32,6 @@ export default function MobileNav() {
         />
       )}
 
-      {/* More Drawer */}
       <div style={{
         position: 'fixed', bottom: 64, left: 0, right: 0, zIndex: 50,
         background: 'white', borderRadius: '20px 20px 0 0',
@@ -72,7 +70,6 @@ export default function MobileNav() {
         })}
       </div>
 
-      {/* Bottom Tab Bar */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
         height: 64, background: 'white',
@@ -100,7 +97,6 @@ export default function MobileNav() {
             </Link>
           )
         })}
-        {/* More button */}
         <button
           onClick={() => setShowMore(o => !o)}
           style={{
