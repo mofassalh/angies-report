@@ -76,20 +76,20 @@ export default function FilterBar() {
   const monthOpts = availableMonths.map(m => ({ key:m.key, label:m.label }))
   const hasAny = filters.locations.length>0 || filters.restaurants.length>0 || filters.months.length>0
   return (
-    <div style={{ background:'#fff', borderBottom:'1px solid #f0f0f0', padding:'0 24px', display:'flex', alignItems:'center', justifyContent:'space-between', height:60, flexShrink:0 }}>
-      <div>
+    <div style={{ background:'#fff', borderBottom:'1px solid #f0f0f0', padding:'0 16px', display:'flex', alignItems:'center', justifyContent:'space-between', height:60, flexShrink:0, gap:8 }}>
+      <div style={{ flexShrink:0 }}>
         {pageInfo && <>
-          <div style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', lineHeight:1.2 }}>{pageInfo.title}</div>
+          <div style={{ fontSize:16, fontWeight:700, color:'#1a1a1a', lineHeight:1.2 }}>{pageInfo.title}</div>
           <div style={{ fontSize:11, color:'#aaa', marginTop:1 }}>{pageInfo.sub}</div>
         </>}
       </div>
-      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, overflowX:'auto', flexShrink:0 }}>
         <MultiDropdown label="Months" options={monthOpts} selected={filters.months||[]} onChange={v=>setFilters({months:v})} />
-        <div style={{width:1,height:20,background:'#e5e5e5'}}/>
+        <div style={{width:1,height:20,background:'#e5e5e5',flexShrink:0}}/>
         <MultiDropdown label="Locations" options={locationOpts} selected={filters.locations} onChange={v=>setFilters({locations:v})} />
         <MultiDropdown label="Restaurants" options={restaurantOpts} selected={filters.restaurants} onChange={v=>setFilters({restaurants:v})} />
         {hasAny && (
-          <button onClick={()=>setFilters({locations:[],restaurants:[],months:[]})} style={{ padding:'6px 12px', border:'0.5px solid #ffcccc', borderRadius:20, background:'#fff5f5', color:'#cc0000', fontSize:12, cursor:'pointer' }}>
+          <button onClick={()=>setFilters({locations:[],restaurants:[],months:[]})} style={{ padding:'6px 12px', border:'0.5px solid #ffcccc', borderRadius:20, background:'#fff5f5', color:'#cc0000', fontSize:12, cursor:'pointer', flexShrink:0 }}>
             Clear ✕
           </button>
         )}
